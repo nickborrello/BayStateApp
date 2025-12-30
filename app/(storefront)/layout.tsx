@@ -5,6 +5,7 @@ import { CampaignBanner } from '@/components/storefront/campaign-banner';
 import { SearchProvider } from '@/components/storefront/search-provider';
 import { StickyCart } from '@/components/storefront/sticky-cart';
 import { getProducts, getActiveServices, getBrands } from '@/lib/data';
+import { getCampaignBanner } from '@/lib/settings';
 
 /**
  * StorefrontLayout - Layout wrapper for all customer-facing pages.
@@ -15,22 +16,25 @@ export default async function StorefrontLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch search data for the command bar
-  const [{ products }, services, brands] = await Promise.all([
+  // Fetch search data and campaign settings
+  const [{ products }, services, brands, campaignBanner] = await Promise.all([
     getProducts({ limit: 100 }),
     getActiveServices(),
     getBrands(),
+    getCampaignBanner(),
   ]);
 
   return (
     <SearchProvider initialData={{ products, services, brands }}>
       <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
-        <CampaignBanner
-          message="🌱 Spring Garden Sale — Save 20% on all seeds and planters!"
-          linkText="Shop Now"
-          linkHref="/products?category=garden"
-          variant="seasonal"
-        />
+        {campaignBanner.enabled && (
+          <CampaignBanner
+            message={campaignBanner.message}
+            linkText={campaignBanner.link_text}
+            linkHref={campaignBanner.link_href}
+            variant={campaignBanner.variant}
+          />
+        )}
         <StorefrontHeader />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <StorefrontFooter />

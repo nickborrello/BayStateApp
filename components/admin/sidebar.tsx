@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Package, Wrench, ShoppingCart, Home } from 'lucide-react'
+import { Package, Wrench, ShoppingCart, Home, Settings } from 'lucide-react'
 
 export function AdminSidebar() {
   return (
@@ -23,6 +23,10 @@ export function AdminSidebar() {
         <Link href="/admin/orders" className="flex items-center space-x-3 rounded px-4 py-2 hover:bg-gray-800">
           <ShoppingCart className="h-5 w-5" />
           <span>Orders</span>
+        </Link>
+        <Link href="/admin/settings" className="flex items-center space-x-3 rounded px-4 py-2 hover:bg-gray-800">
+          <Settings className="h-5 w-5" />
+          <span>Settings</span>
         </Link>
       </nav>
     </div>

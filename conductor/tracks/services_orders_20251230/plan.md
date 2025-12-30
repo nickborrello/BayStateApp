@@ -30,8 +30,8 @@
 - [~] Task: Conductor - User Manual Verification 'Order Management (Admin)' (Protocol in workflow.md)
 
 ## Phase 5: Campaign Controls (Admin)
-- [ ] Task: Write Tests for campaign settings
-- [ ] Task: Create database schema for campaigns/settings
-- [ ] Task: Build Campaign settings page in admin
-- [ ] Task: Connect storefront banner to admin-controlled campaigns
-- [ ] Task: Conductor - User Manual Verification 'Campaign Controls (Admin)' (Protocol in workflow.md)
+- [x] Task: Write Tests for campaign settings [pending]
+- [x] Task: Create database schema for campaigns/settings [pending]
+- [x] Task: Build Campaign settings page in admin [pending]
+- [x] Task: Connect storefront banner to admin-controlled campaigns [pending]
+- [~] Task: Conductor - User Manual Verification 'Campaign Controls (Admin)' (Protocol in workflow.md)
