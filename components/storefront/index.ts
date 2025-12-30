@@ -11,3 +11,4 @@ export { SearchProvider, useSearch } from './search-provider';
 export { StickyCart } from './sticky-cart';
 export { CartDrawer } from './cart-drawer';
 export { AddToCartButton } from './add-to-cart-button';
+export { AddServiceToCartButton } from './add-service-to-cart-button';

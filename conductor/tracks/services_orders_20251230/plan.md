@@ -8,11 +8,11 @@
 - [~] Task: Conductor - User Manual Verification 'Services Management (Admin)' (Protocol in workflow.md)
 
 ## Phase 2: Services Storefront
-- [ ] Task: Write Tests for services listing and detail pages
-- [ ] Task: Create /services listing page with service cards
-- [ ] Task: Create /services/[slug] detail page with Reserve CTA
-- [ ] Task: Add service reservation to cart (service booking flow)
-- [ ] Task: Conductor - User Manual Verification 'Services Storefront' (Protocol in workflow.md)
+- [x] Task: Write Tests for services listing and detail pages [pending]
+- [x] Task: Create /services listing page with service cards [pending]
+- [x] Task: Create /services/[slug] detail page with Reserve CTA [pending]
+- [x] Task: Add service reservation to cart (service booking flow) [pending]
+- [~] Task: Conductor - User Manual Verification 'Services Storefront' (Protocol in workflow.md)
 
 ## Phase 3: Checkout Flow
 - [ ] Task: Write Tests for checkout and order creation
