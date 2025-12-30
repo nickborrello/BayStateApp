@@ -10,7 +10,7 @@
 ## Phase 2: Secure Admin Foundation
 - [x] Task: Write Tests for Admin Auth and Route Protection [3a850fa]
 - [x] Task: Implement Next.js Middleware for `/admin` protection [3a850fa]
-- [ ] Task: Implement Admin Login Page using Supabase Auth
+- [~] Task: Implement Admin Login Page using Supabase Auth
 - [ ] Task: Create Admin Layout with Side Navigation
 - [ ] Task: Conductor - User Manual Verification 'Secure Admin Foundation' (Protocol in workflow.md)
 
