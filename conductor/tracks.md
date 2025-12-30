@@ -25,4 +25,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-None currently active.
+### PWA & Polish
+- **Location:** `tracks/pwa_polish_20251230/`
+- **Status:** 🆕 Planned
+- **Description:** Add PWA capabilities, brand management, static pages, and final polish
