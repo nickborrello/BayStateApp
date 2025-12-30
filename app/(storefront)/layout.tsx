@@ -3,6 +3,7 @@ import { StorefrontFooter } from '@/components/storefront/footer';
 import { MobileNav } from '@/components/storefront/mobile-nav';
 import { CampaignBanner } from '@/components/storefront/campaign-banner';
 import { SearchProvider } from '@/components/storefront/search-provider';
+import { StickyCart } from '@/components/storefront/sticky-cart';
 import { getProducts, getActiveServices, getBrands } from '@/lib/data';
 
 /**
@@ -33,6 +34,7 @@ export default async function StorefrontLayout({
         <StorefrontHeader />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <StorefrontFooter />
+        <StickyCart />
         <MobileNav />
       </div>
     </SearchProvider>

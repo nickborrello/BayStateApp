@@ -29,8 +29,8 @@
 - [~] Task: Conductor - User Manual Verification 'Intelligent Command Bar' (Protocol in workflow.md)
 
 ## Phase 5: Cart & Checkout Foundation
-- [ ] Task: Write Tests for cart state management (Zustand)
-- [ ] Task: Implement Zustand cart store with add/remove/update functionality
-- [ ] Task: Create Sticky Cart component for mobile
-- [ ] Task: Build Cart drawer/page with order summary
-- [ ] Task: Conductor - User Manual Verification 'Cart & Checkout Foundation' (Protocol in workflow.md)
+- [x] Task: Write Tests for cart state management (Zustand) [pending]
+- [x] Task: Implement Zustand cart store with add/remove/update functionality [pending]
+- [x] Task: Create Sticky Cart component for mobile [pending]
+- [x] Task: Build Cart drawer/page with order summary [pending]
+- [~] Task: Conductor - User Manual Verification 'Cart & Checkout Foundation' (Protocol in workflow.md)

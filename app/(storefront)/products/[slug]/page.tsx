@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { getProductBySlug } from '@/lib/products';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AddToCartButton } from '@/components/storefront/add-to-cart-button';
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -110,18 +110,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
           {/* Add to Cart */}
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Button
-              size="lg"
-              className="h-14 flex-1 text-lg"
-              disabled={product.stock_status === 'out_of_stock'}
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              {product.stock_status === 'out_of_stock'
-                ? 'Out of Stock'
-                : product.stock_status === 'pre_order'
-                  ? 'Pre-Order Now'
-                  : 'Add to Cart'}
-            </Button>
+            <AddToCartButton product={product} />
           </div>
 
           {/* Product Details */}
