@@ -30,3 +30,12 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **Status:** ✅ Complete
 - **Checkpoint:** `9f88e15`
 - **Description:** Add PWA capabilities, brand management, static pages, and final polish
+
+---
+
+## [ ] Track: Migrate BayStateTools to Admin Panel
+*Link: [./conductor/tracks/tools_migration_20251230/](./conductor/tracks/tools_migration_20251230/)*
+- **Location:** `tracks/tools_migration_20251230/`
+- **Status:** 🆕 New
+- **Description:** Migrate scraper, pipeline, quality, analytics, and settings tools from BayStateTools into BayStateApp admin panel
+
