@@ -11,13 +11,13 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **Status:** ✅ Complete
 - **Checkpoint:** `19264b8`
 
+### Build the Customer Storefront
+- **Location:** `tracks/storefront_customer_20251230/`
+- **Status:** ✅ Complete
+- **Checkpoint:** `11b15f6`
+
 ---
 
 ## Active Tracks
 
-### Build the Customer Storefront
-- **Location:** `tracks/storefront_customer_20251230/`
-- **Status:** 🚧 In Progress
-- **Description:** Create a high-performance, mobile-first customer-facing storefront
-
----
+None currently active.
