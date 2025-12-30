@@ -20,4 +20,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-None currently active.
+### Services & Order Management
+- **Location:** `tracks/services_orders_20251230/`
+- **Status:** 🚧 In Progress
+- **Description:** Complete hybrid product/service model with order tracking
