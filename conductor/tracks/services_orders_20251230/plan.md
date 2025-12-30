@@ -15,12 +15,12 @@
 - [~] Task: Conductor - User Manual Verification 'Services Storefront' (Protocol in workflow.md)
 
 ## Phase 3: Checkout Flow
-- [ ] Task: Write Tests for checkout and order creation
-- [ ] Task: Create database schema for orders (migration)
-- [ ] Task: Build /checkout page with customer info form
-- [ ] Task: Implement order creation in Supabase
-- [ ] Task: Create order confirmation page
-- [ ] Task: Conductor - User Manual Verification 'Checkout Flow' (Protocol in workflow.md)
+- [x] Task: Write Tests for checkout and order creation [pending]
+- [x] Task: Create database schema for orders (migration) [pending]
+- [x] Task: Build /checkout page with customer info form [pending]
+- [x] Task: Implement order creation in Supabase [pending]
+- [x] Task: Create order confirmation page [pending]
+- [~] Task: Conductor - User Manual Verification 'Checkout Flow' (Protocol in workflow.md)
 
 ## Phase 4: Order Management (Admin)
 - [ ] Task: Write Tests for order listing and status updates
