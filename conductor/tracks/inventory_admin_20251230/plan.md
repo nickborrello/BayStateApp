@@ -3,8 +3,8 @@
 ## Phase 1: Environment Setup & Data Schema
 - [x] Task: Initialize Next.js app with TypeScript, Tailwind, and shadcn/ui [a9ba5ad]
 - [x] Task: Configure Supabase project and environment variables [acceaf7]
-- [~] Task: Write Tests for PostgreSQL schema definitions (Brands, Products, Services)
-- [ ] Task: Implement PostgreSQL schema in Supabase
+- [x] Task: Write Tests for PostgreSQL schema definitions (Brands, Products, Services) [4720c2e]
+- [x] Task: Implement PostgreSQL schema in Supabase [4720c2e]
 - [ ] Task: Conductor - User Manual Verification 'Environment Setup & Data Schema' (Protocol in workflow.md)
 
 ## Phase 2: Secure Admin Foundation
