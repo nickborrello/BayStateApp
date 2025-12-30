@@ -13,8 +13,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bay State Pet & Garden Supply",
-  description: "Your local source for pet supplies, garden tools, and farm products.",
+  title: {
+    default: "Bay State Pet & Garden Supply",
+    template: "%s | Bay State Pet & Garden",
+  },
+  description: "Your local source for pet supplies, garden tools, and farm products. Family-owned and serving the community with quality products and neighborly service.",
+  keywords: ["pet supplies", "garden tools", "farm products", "pet food", "garden center", "Massachusetts"],
+  authors: [{ name: "Bay State Pet & Garden Supply" }],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "Bay State Pet & Garden Supply",
+    title: "Bay State Pet & Garden Supply",
+    description: "Your local source for pet supplies, garden tools, and farm products. Family-owned and serving the community.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bay State Pet & Garden Supply",
+    description: "Your local source for pet supplies, garden tools, and farm products.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

@@ -24,8 +24,50 @@ export default async function StorefrontLayout({
     getCampaignBanner(),
   ]);
 
+  // JSON-LD structured data for local business
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: 'Bay State Pet & Garden Supply',
+    description: 'Your local source for pet supplies, garden tools, and farm products.',
+    url: 'https://baystatepetgarden.com',
+    telephone: '+1-555-123-4567',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '123 Main Street',
+      addressLocality: 'Anytown',
+      addressRegion: 'MA',
+      postalCode: '01234',
+      addressCountry: 'US',
+    },
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+        opens: '08:00',
+        closes: '18:00',
+      },
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: 'Saturday',
+        opens: '08:00',
+        closes: '17:00',
+      },
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: 'Sunday',
+        opens: '10:00',
+        closes: '16:00',
+      },
+    ],
+  };
+
   return (
     <SearchProvider initialData={{ products, services, brands }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
         {campaignBanner.enabled && (
           <CampaignBanner

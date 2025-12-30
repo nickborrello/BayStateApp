@@ -1,5 +1,15 @@
+import { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Clock, Phone, Mail } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: "Contact Us",
+    description: "Contact Bay State Pet & Garden Supply. Find our store hours, location, phone number, and email. We're always happy to help!",
+    openGraph: {
+        title: "Contact Us | Bay State Pet & Garden Supply",
+        description: "Find our store hours, location, and contact information.",
+    },
+};
 
 export default async function ContactPage() {
     return (

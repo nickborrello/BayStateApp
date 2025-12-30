@@ -1,5 +1,15 @@
+import { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Clock, Users, Heart } from 'lucide-react';
+
+export const metadata: Metadata = {
+    title: "About Us",
+    description: "Learn about Bay State Pet & Garden Supply - a family-owned local store serving the community with quality pet supplies, garden tools, and farm products for decades.",
+    openGraph: {
+        title: "About Us | Bay State Pet & Garden Supply",
+        description: "A family-owned local store serving the community with quality products and neighborly service.",
+    },
+};
 
 export default async function AboutPage() {
     return (
