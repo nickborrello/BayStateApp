@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Build the Inventory & Admin Foundation
+## [~] Track: Build the Inventory & Admin Foundation
 *Link: [./conductor/tracks/inventory_admin_20251230/](./conductor/tracks/inventory_admin_20251230/)*

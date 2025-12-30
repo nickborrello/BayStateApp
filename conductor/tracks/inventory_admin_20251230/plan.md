@@ -1,7 +1,7 @@
 # Track Plan: Build the Inventory & Admin Foundation
 
 ## Phase 1: Environment Setup & Data Schema
-- [ ] Task: Initialize Next.js app with TypeScript, Tailwind, and shadcn/ui
+- [~] Task: Initialize Next.js app with TypeScript, Tailwind, and shadcn/ui
 - [ ] Task: Configure Supabase project and environment variables
 - [ ] Task: Write Tests for PostgreSQL schema definitions (Brands, Products, Services)
 - [ ] Task: Implement PostgreSQL schema in Supabase
