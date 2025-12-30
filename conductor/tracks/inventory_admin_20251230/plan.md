@@ -18,5 +18,5 @@
 - [x] Task: Write Tests for Product/Service Listing and Management [2c1ef7b]
 - [x] Task: Create Product/Service Listing Page with Bento-grid layout [2c1ef7b]
 - [x] Task: Implement 'Add Product' Form with Zod validation and shadcn/ui [665d4db]
-- [ ] Task: Implement 'Edit Product' and 'Toggle Stock' functionality
+- [~] Task: Implement 'Edit Product' and 'Toggle Stock' functionality
 - [ ] Task: Conductor - User Manual Verification 'Inventory Management (MVP)' (Protocol in workflow.md)
