@@ -20,6 +20,16 @@ export const metadata: Metadata = {
   description: "Your local source for pet supplies, garden tools, and farm products. Family-owned and serving the community with quality products and neighborly service.",
   keywords: ["pet supplies", "garden tools", "farm products", "pet food", "garden center", "Massachusetts"],
   authors: [{ name: "Bay State Pet & Garden Supply" }],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Bay State P&G",
+  },
+  icons: {
+    icon: "/icons/icon-192x192.png",
+    apple: "/icons/icon-192x192.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
