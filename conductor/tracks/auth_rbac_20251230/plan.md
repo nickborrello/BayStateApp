@@ -56,9 +56,9 @@
 - [x] Task: Build Address management UI in `/account/addresses` f8c86c0
 
 ### 3.3 Wishlist System
-- [ ] Task: Create `wishlists` table migration (user_id, product_id)
-- [ ] Task: Write failing tests for wishlist toggle and retrieval
-- [ ] Task: Implement "Add to Wishlist" buttons in product cards and account view
+- [x] Task: Create `wishlists` table migration (user_id, product_id) b05e994
+- [x] Task: Write failing tests for wishlist toggle and retrieval b05e994
+- [x] Task: Implement "Add to Wishlist" buttons in product cards and account view b05e994
 
 ### 3.4 Phase Checkpoint
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Customer Dashboard & Account Management' (Protocol in workflow.md)
