@@ -11,6 +11,7 @@ import {
   Tag,
   Users,
   Palette,
+  RefreshCw,
 } from 'lucide-react';
 
 interface NavItem {
@@ -65,6 +66,7 @@ const navSections: NavSection[] = [
     adminOnly: true, // Only admins can see this section
     items: [
       { href: '/admin/users', label: 'Users', icon: <Users className="h-5 w-5" />, adminOnly: true },
+      { href: '/admin/migration', label: 'Data Migration', icon: <RefreshCw className="h-5 w-5" />, adminOnly: true },
       { href: '/admin/settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
     ],
   },

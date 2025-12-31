@@ -99,9 +99,12 @@ export default function AdminSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border border-dashed p-4 text-center text-muted-foreground text-sm">
-              Data settings coming soon
-            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Import and sync products, customers, and orders from legacy ShopSite store.
+            </p>
+            <Link href="/admin/migration">
+              <Button variant="outline">Manage Migration</Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
