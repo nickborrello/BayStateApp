@@ -46,9 +46,9 @@
 ## Phase 3: Customer Dashboard & Account Management [checkpoint: ]
 
 ### 3.1 Account Layout and Profile
-- [ ] Task: Create `/account` layout with sidebar navigation
-- [ ] Task: Write failing tests for profile update functionality
-- [ ] Task: Implement profile editing (name, phone, email preferences)
+- [x] Task: Create `/account` layout with sidebar navigation dee4a58
+- [x] Task: Write failing tests for profile update functionality dee4a58
+- [x] Task: Implement profile editing (name, phone, email preferences) dee4a58
 
 ### 3.2 Address Management
 - [ ] Task: Create `addresses` table migration with primary flag
