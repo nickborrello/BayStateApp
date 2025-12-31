@@ -3,17 +3,17 @@
 ## Phase 1: Database Schema & Authentication Middleware [checkpoint: ]
 
 ### 1.1 Profiles and Roles Schema
-- [ ] Task: Create migration `create_profiles_and_roles` for `profiles` table (linked to `auth.users`)
-- [ ] Task: Add `role` column with `admin` and `staff` constraints
-- [ ] Task: Add RLS policies for profile protection
-- [ ] Task: Write failing test for profile retrieval and role validation
-- [ ] Task: Implement `lib/auth/roles.ts` for role checking helpers
+- [x] Task: Create migration `create_profiles_and_roles` for `profiles` table (linked to `auth.users`) 7624fd5
+- [x] Task: Add `role` column with `admin` and `staff` constraints 7624fd5
+- [x] Task: Add RLS policies for profile protection 7624fd5
+- [x] Task: Write failing test for profile retrieval and role validation 7624fd5
+- [x] Task: Implement `lib/auth/roles.ts` for role checking helpers 7624fd5
 
 ### 1.2 Authentication Middleware
-- [ ] Task: Write failing test for unauthorized access to `/admin` and `/account`
-- [ ] Task: Implement Next.js Middleware with Supabase Auth (SSR support)
-- [ ] Task: Implement role-based redirection logic for `/admin` routes
-- [ ] Task: Verify that `staff` cannot access `/admin/settings` or `/admin/users`
+- [x] Task: Write failing test for unauthorized access to `/admin` and `/account` 7624fd5
+- [x] Task: Implement Next.js Middleware with Supabase Auth (SSR support) 7624fd5
+- [x] Task: Implement role-based redirection logic for `/admin` routes 7624fd5
+- [x] Task: Verify that `staff` cannot access `/admin/settings` or `/admin/users` 7624fd5
 
 ### 1.3 Phase Checkpoint
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Database Schema & Authentication Middleware' (Protocol in workflow.md)
