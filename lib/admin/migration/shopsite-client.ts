@@ -13,6 +13,7 @@ import {
     ShopSiteConfigSchema,
     ConnectionTestResult,
     ShopSiteConfig,
+    AddressInfo,
 } from './types';
 
 export interface OrderDownloadOptions {
@@ -63,6 +64,45 @@ export class ShopSiteClient {
         }
 
         return `${baseUrl}/${scriptName}?${queryParams}`;
+    }
+
+    /**
+     * Sanitizes raw ShopSite XML to make it compatible with XML parsers.
+     * 1. Fixes unencoded ampersands.
+     * 2. Replaces common HTML entities that are not valid in standard XML.
+     */
+    public static sanitizeXml(xml: string): string {
+        if (!xml) return '';
+
+        let sanitized = xml;
+
+        // 1. Fix Unencoded Ampersands
+        // Matches '&' that is NOT followed by an entity pattern (e.g., &amp;, &#123;)
+        sanitized = sanitized.replace(/&(?![a-zA-Z0-9#]+;)/g, '&amp;');
+
+        // 2. Replace common HTML entities that break XML parsers
+        const htmlEntities: Record<string, string> = {
+            '&nbsp;': '&#160;',
+            '&copy;': '&#169;',
+            '&reg;': '&#174;',
+            '&trade;': '&#8482;',
+            '&bull;': '&#8226;',
+            '&hellip;': '&#8230;',
+            '&ndash;': '&#8211;',
+            '&mdash;': '&#8212;',
+            '&lsquo;': '&#8216;',
+            '&rsquo;': '&#8217;',
+            '&ldquo;': '&#8220;',
+            '&rdquo;': '&#8221;',
+            '&middot;': '&#183;',
+            '&deg;': '&#176;',
+        };
+
+        for (const [entity, replacement] of Object.entries(htmlEntities)) {
+            sanitized = sanitized.split(entity).join(replacement);
+        }
+
+        return sanitized;
     }
 
     /**
@@ -118,7 +158,7 @@ export class ShopSiteClient {
                 return [];
             }
 
-            const xmlText = await response.text();
+            const xmlText = ShopSiteClient.sanitizeXml(await response.text());
             return this.parseProductsXml(xmlText);
         } catch (error) {
             console.error('Error fetching products:', error);
@@ -133,13 +173,15 @@ export class ShopSiteClient {
         try {
             // Build query parameters
             const params = new URLSearchParams();
-            params.append('version', options.version || '15.0');
+            params.append('clientApp', '1');
+            params.append('dbname', 'orders');
+            params.append('version', options.version || '14.0');
+            params.append('pay', 'yes');
 
             if (options.startOrder) params.append('startorder', options.startOrder);
             if (options.endOrder) params.append('endorder', options.endOrder);
             if (options.startDate) params.append('startdate', options.startDate);
             if (options.endDate) params.append('enddate', options.endDate);
-            if (options.pay) params.append('pay', 'yes');
 
             const response = await fetch(
                 this.buildUrl(params.toString(), 'db_xml.cgi'),
@@ -160,7 +202,7 @@ export class ShopSiteClient {
             // Handle encoding (ShopSite is strict ISO-8859-1)
             const buffer = await response.arrayBuffer();
             const decoder = new TextDecoder('iso-8859-1');
-            const xmlText = decoder.decode(buffer);
+            const xmlText = ShopSiteClient.sanitizeXml(decoder.decode(buffer));
 
             console.log(`[ShopSite] Downloaded orders XML: ${xmlText.length} chars`);
             return this.parseOrdersXml(xmlText);
@@ -191,7 +233,7 @@ export class ShopSiteClient {
                 return [];
             }
 
-            const xmlText = await response.text();
+            const xmlText = ShopSiteClient.sanitizeXml(await response.text());
             return this.parseCustomersXml(xmlText);
         } catch (error) {
             console.error('Error fetching customers:', error);
@@ -206,20 +248,21 @@ export class ShopSiteClient {
     private parseProductsXml(xmlText: string): ShopSiteProduct[] {
         const products: ShopSiteProduct[] = [];
 
-        // Use regex for server-side XML parsing (DOMParser not available in Node)
-        const productMatches = xmlText.match(/<product>([\s\S]*?)<\/product>/gi);
+        // Support both <product> and <Product> tags
+        const productMatches = xmlText.match(/<(?:product|Product)>([\s\S]*?)<\/(?:product|Product)>/gi);
         if (!productMatches) return products;
 
         for (const productXml of productMatches) {
-            const sku = this.extractXmlValue(productXml, 'sku');
-            const name = this.extractXmlValue(productXml, 'name');
-            const price = parseFloat(this.extractXmlValue(productXml, 'price') || '0');
-            const description = this.extractXmlValue(productXml, 'description');
-            const quantityOnHand = parseInt(this.extractXmlValue(productXml, 'quantity_on_hand') || '0', 10);
-            const imageUrl = this.extractXmlValue(productXml, 'graphic');
-            const weight = parseFloat(this.extractXmlValue(productXml, 'Weight') || '0');
-            const taxable = this.extractXmlValue(productXml, 'Taxable') === 'Yes';
-            const productType = this.extractXmlValue(productXml, 'ProdType');
+            // Support both variations found in ShopSite XML exports/API
+            const sku = this.extractXmlValue(productXml, 'sku') || this.extractXmlValue(productXml, 'SKU');
+            const name = this.extractXmlValue(productXml, 'name') || this.extractXmlValue(productXml, 'Name');
+            const price = parseFloat(this.extractXmlValue(productXml, 'price') || this.extractXmlValue(productXml, 'Price') || '0');
+            const description = this.extractXmlValue(productXml, 'description') || this.extractXmlValue(productXml, 'Name'); // Some ShopSite exports use Name for description if empty
+            const quantityOnHand = parseInt(this.extractXmlValue(productXml, 'quantity_on_hand') || this.extractXmlValue(productXml, 'Quantity') || '0', 10);
+            const imageUrl = this.extractXmlValue(productXml, 'graphic') || this.extractXmlValue(productXml, 'Graphic');
+            const weight = parseFloat(this.extractXmlValue(productXml, 'Weight') || this.extractXmlValue(productXml, 'weight') || '0');
+            const taxable = this.extractXmlValue(productXml, 'Taxable') === 'Yes' || this.extractXmlValue(productXml, 'taxable') === 'Yes';
+            const productType = this.extractXmlValue(productXml, 'ProdType') || this.extractXmlValue(productXml, 'prod_type');
 
             if (sku && name) {
                 products.push({
@@ -393,7 +436,14 @@ export class ShopSiteClient {
     private extractXmlValue(xml: string, tag: string): string {
         const regex = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
         const match = xml.match(regex);
-        return match ? match[1].trim() : '';
+        let value = match ? match[1].trim() : '';
+
+        // Handle CDATA if present
+        if (value.startsWith('<![CDATA[')) {
+            value = value.substring(9, value.length - 3);
+        }
+
+        return value;
     }
 
     /**

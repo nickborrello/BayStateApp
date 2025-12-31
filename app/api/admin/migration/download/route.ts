@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { ShopSiteClient } from '@/lib/admin/migration/shopsite-client';
 
 const MIGRATION_SETTINGS_KEY = 'shopsite_migration';
 
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
             break;
         case 'orders':
             // XML Order Download API
-            queryString = 'version=15.0';
+            queryString = 'clientApp=1&dbname=orders&version=14.0&pay=yes';
             break;
         case 'customers':
             queryString = 'clientApp=1&dbname=registration';
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
     try {
         const response = await fetch(`${baseUrl}/db_xml.cgi?${queryString}`, {
             headers: { 'Authorization': authHeader },
+            cache: 'no-store',
         });
 
         if (!response.ok) {
@@ -86,7 +88,21 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const xmlContent = await response.text();
+        // ShopSite often returns ISO-8859-1
+        const buffer = await response.arrayBuffer();
+        const decoder = new TextDecoder('iso-8859-1');
+        let xmlContent = decoder.decode(buffer);
+
+        // For orders, ShopSite often prepends a custom Content-type header in the body
+        if (type === 'orders' && xmlContent.startsWith('Content-type:')) {
+            const headerEnd = xmlContent.indexOf('\n\n');
+            if (headerEnd !== -1) {
+                xmlContent = xmlContent.substring(headerEnd + 2);
+            }
+        }
+
+        // Sanitize XML to fix ampersands and HTML entities
+        xmlContent = ShopSiteClient.sanitizeXml(xmlContent);
 
         // Return as downloadable XML file
         return new NextResponse(xmlContent, {

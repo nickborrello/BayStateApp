@@ -137,8 +137,6 @@ export async function syncProductsAction(): Promise<SyncResult> {
         return result;
     }
 
-    const supabase = await createClient();
-
     // Fetch products from ShopSite
     const config: ShopSiteConfig = {
         storeUrl: credentials.storeUrl,
@@ -164,8 +162,33 @@ export async function syncProductsAction(): Promise<SyncResult> {
         return result;
     }
 
+    const result = await processProducts(shopSiteProducts, logId ?? undefined);
+    return result;
+}
+
+/**
+ * Shared logic for processing ShopSite products.
+ */
+async function processProducts(shopSiteProducts: any[], logId?: string): Promise<SyncResult> {
+    const startTime = Date.now();
+    const MAX_ERRORS = 50;
+    const errors: MigrationError[] = [];
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+
+    const addError = (record: string, message: string) => {
+        if (errors.length < MAX_ERRORS) {
+            errors.push({
+                record,
+                error: message,
+                timestamp: new Date().toISOString(),
+            });
+        }
+    };
+
     if (shopSiteProducts.length === 0) {
-        const result = {
+        return {
             success: true,
             processed: 0,
             created: 0,
@@ -174,9 +197,9 @@ export async function syncProductsAction(): Promise<SyncResult> {
             errors: [],
             duration: Date.now() - startTime,
         };
-        if (logId) await completeMigrationLog(logId, result);
-        return result;
     }
+
+    const supabase = await createClient();
 
     // Get existing slugs to ensure uniqueness
     const { data: existingProducts } = await supabase
@@ -230,7 +253,7 @@ export async function syncProductsAction(): Promise<SyncResult> {
                 created,
                 updated,
                 failed,
-                errors: [], // Don't send errors during progress updates to save bandwidth
+                errors: [],
                 duration: Date.now() - startTime,
             });
         }
@@ -256,7 +279,6 @@ export async function syncProductsAction(): Promise<SyncResult> {
 
 /**
  * Form action wrapper for syncProducts.
- * This wrapper doesn't return a value, making it compatible with form action prop.
  */
 export async function syncProductsFormAction(): Promise<void> {
     await syncProductsAction();
@@ -267,28 +289,6 @@ export async function syncProductsFormAction(): Promise<void> {
  */
 export async function syncCustomersAction(): Promise<SyncResult> {
     const startTime = Date.now();
-    const MAX_ERRORS = 50;
-    const errors: MigrationError[] = [];
-    let created = 0;
-    let updated = 0;
-    let failed = 0;
-
-    const addError = (record: string, message: string) => {
-        if (errors.length < MAX_ERRORS) {
-            errors.push({
-                record,
-                error: message,
-                timestamp: new Date().toISOString(),
-            });
-        } else if (errors.length === MAX_ERRORS) {
-            errors.push({
-                record: '...',
-                error: 'Too many errors, truncating log',
-                timestamp: new Date().toISOString(),
-            });
-        }
-    };
-
     const logId = await startMigrationLog('customers');
 
     const credentials = await getCredentials();
@@ -306,7 +306,6 @@ export async function syncCustomersAction(): Promise<SyncResult> {
         return result;
     }
 
-    const supabase = await createClient();
     const config: ShopSiteConfig = {
         storeUrl: credentials.storeUrl,
         merchantId: credentials.merchantId,
@@ -331,8 +330,33 @@ export async function syncCustomersAction(): Promise<SyncResult> {
         return result;
     }
 
+    const result = await processCustomers(shopSiteCustomers, logId ?? undefined);
+    return result;
+}
+
+/**
+ * Shared logic for processing ShopSite customers.
+ */
+async function processCustomers(shopSiteCustomers: any[], logId?: string): Promise<SyncResult> {
+    const startTime = Date.now();
+    const MAX_ERRORS = 50;
+    const errors: MigrationError[] = [];
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+
+    const addError = (record: string, message: string) => {
+        if (errors.length < MAX_ERRORS) {
+            errors.push({
+                record,
+                error: message,
+                timestamp: new Date().toISOString(),
+            });
+        }
+    };
+
     if (shopSiteCustomers.length === 0) {
-        const result = {
+        return {
             success: true,
             processed: 0,
             created: 0,
@@ -341,23 +365,22 @@ export async function syncCustomersAction(): Promise<SyncResult> {
             errors: [],
             duration: Date.now() - startTime,
         };
-        if (logId) await completeMigrationLog(logId, result);
-        return result;
     }
+
+    const supabase = await createClient();
 
     // Get existing emails to check for updates
     const { data: existingProfiles } = await supabase
         .from('profiles')
         .select('email');
 
-    const existingEmails = new Set((existingProfiles || []).map((p: { email: string }) => p.email?.toLowerCase()));
+    const existingEmails = new Set((existingProfiles || []).map((p: any) => p.email?.toLowerCase()));
 
     for (const shopSiteCustomer of shopSiteCustomers) {
         try {
             const transformed = transformShopSiteCustomer(shopSiteCustomer);
             const isUpdate = existingEmails.has(transformed.email);
 
-            // For legacy imports, we insert into profiles without creating auth users
             const { error } = await supabase
                 .from('profiles')
                 .upsert(transformed, {
@@ -380,7 +403,6 @@ export async function syncCustomersAction(): Promise<SyncResult> {
             failed++;
         }
 
-        // Update progress every 10 records
         if ((created + updated + failed) % 10 === 0 && logId) {
             await updateMigrationProgress(logId, {
                 success: true,
@@ -420,32 +442,9 @@ export async function syncCustomersFormAction(): Promise<void> {
 
 /**
  * Sync orders from ShopSite to Supabase.
- * Maps orders to profiles and products using email and SKU.
  */
 export async function syncOrdersAction(): Promise<SyncResult> {
     const startTime = Date.now();
-    const MAX_ERRORS = 50;
-    const errors: MigrationError[] = [];
-    let created = 0;
-    let updated = 0;
-    let failed = 0;
-
-    const addError = (record: string, message: string) => {
-        if (errors.length < MAX_ERRORS) {
-            errors.push({
-                record,
-                error: message,
-                timestamp: new Date().toISOString(),
-            });
-        } else if (errors.length === MAX_ERRORS) {
-            errors.push({
-                record: '...',
-                error: 'Too many errors, truncating log',
-                timestamp: new Date().toISOString(),
-            });
-        }
-    };
-
     const logId = await startMigrationLog('orders');
 
     const credentials = await getCredentials();
@@ -463,7 +462,6 @@ export async function syncOrdersAction(): Promise<SyncResult> {
         return result;
     }
 
-    const supabase = await createClient();
     const config: ShopSiteConfig = {
         storeUrl: credentials.storeUrl,
         merchantId: credentials.merchantId,
@@ -488,8 +486,33 @@ export async function syncOrdersAction(): Promise<SyncResult> {
         return result;
     }
 
+    const result = await processOrders(shopSiteOrders, logId ?? undefined);
+    return result;
+}
+
+/**
+ * Shared logic for processing ShopSite orders.
+ */
+async function processOrders(shopSiteOrders: any[], logId?: string): Promise<SyncResult> {
+    const startTime = Date.now();
+    const MAX_ERRORS = 50;
+    const errors: MigrationError[] = [];
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+
+    const addError = (record: string, message: string) => {
+        if (errors.length < MAX_ERRORS) {
+            errors.push({
+                record,
+                error: message,
+                timestamp: new Date().toISOString(),
+            });
+        }
+    };
+
     if (shopSiteOrders.length === 0) {
-        const result = {
+        return {
             success: true,
             processed: 0,
             created: 0,
@@ -498,42 +521,39 @@ export async function syncOrdersAction(): Promise<SyncResult> {
             errors: [],
             duration: Date.now() - startTime,
         };
-        if (logId) await completeMigrationLog(logId, result);
-        return result;
     }
+
+    const supabase = await createClient();
 
     // Build lookup maps for profiles and products
     const { data: profiles } = await supabase.from('profiles').select('id, email');
     const { data: products } = await supabase.from('products').select('id, sku');
 
     const profileIdMap = new Map<string, string>();
-    (profiles || []).forEach((p: { id: string; email: string }) => {
+    (profiles || []).forEach((p: any) => {
         if (p.email) profileIdMap.set(p.email.toLowerCase(), p.id);
     });
 
     const productIdMap = new Map<string, string>();
-    (products || []).forEach((p: { id: string; sku: string }) => {
+    (products || []).forEach((p: any) => {
         if (p.sku) productIdMap.set(p.sku, p.id);
     });
 
-    // Check for existing legacy orders
     const { data: existingOrders } = await supabase
         .from('orders')
         .select('legacy_order_number');
 
     const existingOrderNumbers = new Set(
         (existingOrders || [])
-            .map((o: { legacy_order_number: string }) => o.legacy_order_number)
+            .map((o: any) => o.legacy_order_number)
             .filter(Boolean)
     );
 
-    // Process orders in batches
     const orderBatches = batchOrders(shopSiteOrders, 25);
 
     for (const batch of orderBatches) {
         for (const shopSiteOrder of batch) {
             try {
-                // Skip if already imported
                 if (existingOrderNumbers.has(shopSiteOrder.orderNumber)) {
                     updated++;
                     continue;
@@ -545,7 +565,6 @@ export async function syncOrdersAction(): Promise<SyncResult> {
                     productIdMap
                 );
 
-                // Insert order
                 const { data: newOrder, error: orderError } = await supabase
                     .from('orders')
                     .insert(orderData)
@@ -558,7 +577,6 @@ export async function syncOrdersAction(): Promise<SyncResult> {
                     continue;
                 }
 
-                // Insert order items
                 if (items.length > 0 && newOrder) {
                     const orderItems = items.map(item => ({
                         ...item,
@@ -571,7 +589,6 @@ export async function syncOrdersAction(): Promise<SyncResult> {
 
                     if (itemsError) {
                         addError(`${shopSiteOrder.orderNumber} items`, itemsError.message);
-                        // Don't count as full failure, order was created
                     }
                 }
 
@@ -582,7 +599,6 @@ export async function syncOrdersAction(): Promise<SyncResult> {
                 failed++;
             }
 
-            // Update progress every 10 records
             if ((created + updated + failed) % 10 === 0 && logId) {
                 await updateMigrationProgress(logId, {
                     success: true,
@@ -611,6 +627,47 @@ export async function syncOrdersAction(): Promise<SyncResult> {
     };
 
     if (logId) await completeMigrationLog(logId, result);
+
+    return result;
+}
+
+/**
+ * Handle manual XML file upload for migration.
+ */
+export async function syncUploadedXmlAction(formData: FormData): Promise<SyncResult> {
+    const file = formData.get('xmlFile') as File;
+    const type = formData.get('syncType') as 'products' | 'orders' | 'customers';
+
+    if (!file || !type) {
+        throw new Error('File and sync type are required');
+    }
+
+    const xmlText = await file.text();
+    const logId = await startMigrationLog(type);
+
+    // We reuse the parsing logic from ShopSiteClient
+    // but without needing a configuration since we have the XML directly
+    // @ts-ignore - Partial config is fine for parsing only
+    const client = new ShopSiteClient({ storeUrl: 'http://local', merchantId: 'local', password: 'local' });
+
+    let result: SyncResult;
+
+    switch (type) {
+        case 'products':
+            const products = (client as any).parseProductsXml(xmlText);
+            result = await processProducts(products, logId ?? undefined);
+            break;
+        case 'orders':
+            const orders = (client as any).parseOrdersXml(xmlText);
+            result = await processOrders(orders, logId ?? undefined);
+            break;
+        case 'customers':
+            const customers = (client as any).parseCustomersXml(xmlText);
+            result = await processCustomers(customers, logId ?? undefined);
+            break;
+        default:
+            throw new Error('Invalid sync type');
+    }
 
     return result;
 }

@@ -28,16 +28,7 @@ export function buildProductSlug(name: string, sku?: string): string {
 /**
  * Transform a ShopSite product into the Supabase products table format.
  */
-export function transformShopSiteProduct(product: ShopSiteProduct): {
-    sku: string;
-    name: string;
-    slug: string;
-    price: number;
-    description: string;
-    stock_status: 'in_stock' | 'out_of_stock' | 'pre_order';
-    images: string[];
-    legacy_shopsite_id: string;
-} {
+export function transformShopSiteProduct(product: ShopSiteProduct): any {
     return {
         sku: product.sku,
         name: product.name,

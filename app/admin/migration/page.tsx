@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Database, RefreshCw, CheckCircle, AlertCircle, History, Clock } from 'lucide-react';
 import { getCredentials, saveCredentialsAction, syncProductsFormAction, syncCustomersFormAction, syncOrdersFormAction } from './actions';
 import { getRecentMigrationLogs } from '@/lib/admin/migration/history';
+import { ManualXmlUpload } from '@/components/admin/migration/manual-xml-upload';
 import { DownloadXmlButtons } from '@/components/admin/migration/download-xml-buttons';
 import { MigrationHistory } from '@/components/admin/migration/migration-history';
-
 
 export default async function AdminMigrationPage() {
     const credentials = await getCredentials();
@@ -132,9 +132,11 @@ export default async function AdminMigrationPage() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Manual Upload */}
+                <ManualXmlUpload />
             </div>
 
-            {/* Migration History */}
             {/* Migration History */}
             <div className="h-full">
                 <MigrationHistory initialLogs={migrationLogs} />
