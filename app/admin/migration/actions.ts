@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ShopSiteClient, ShopSiteConfig } from '@/lib/admin/migration/shopsite-client';
 import { transformShopSiteProduct, generateUniqueSlug } from '@/lib/admin/migration/product-sync';
+import { transformShopSiteCustomer } from '@/lib/admin/migration/customer-sync';
+import { transformShopSiteOrder, batchOrders } from '@/lib/admin/migration/order-sync';
 import { SyncResult, MigrationError } from '@/lib/admin/migration/types';
 
 const MIGRATION_SETTINGS_KEY = 'shopsite_migration';
@@ -210,4 +212,274 @@ export async function syncProductsAction(): Promise<SyncResult> {
  */
 export async function syncProductsFormAction(): Promise<void> {
     await syncProductsAction();
+}
+
+/**
+ * Sync customers from ShopSite to Supabase profiles.
+ */
+export async function syncCustomersAction(): Promise<SyncResult> {
+    const startTime = Date.now();
+    const errors: MigrationError[] = [];
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+
+    const credentials = await getCredentials();
+    if (!credentials) {
+        return {
+            success: false,
+            processed: 0,
+            created: 0,
+            updated: 0,
+            failed: 0,
+            errors: [{ record: 'N/A', error: 'No credentials configured', timestamp: new Date().toISOString() }],
+            duration: Date.now() - startTime,
+        };
+    }
+
+    const supabase = await createClient();
+    const config: ShopSiteConfig = {
+        storeUrl: credentials.storeUrl,
+        merchantId: credentials.merchantId,
+        password: credentials.password,
+    };
+
+    const client = new ShopSiteClient(config);
+    const shopSiteCustomers = await client.fetchCustomers();
+
+    if (shopSiteCustomers.length === 0) {
+        return {
+            success: true,
+            processed: 0,
+            created: 0,
+            updated: 0,
+            failed: 0,
+            errors: [],
+            duration: Date.now() - startTime,
+        };
+    }
+
+    // Get existing emails to check for updates
+    const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('email');
+
+    const existingEmails = new Set((existingProfiles || []).map((p: { email: string }) => p.email?.toLowerCase()));
+
+    for (const shopSiteCustomer of shopSiteCustomers) {
+        try {
+            const transformed = transformShopSiteCustomer(shopSiteCustomer);
+            const isUpdate = existingEmails.has(transformed.email);
+
+            // For legacy imports, we insert into profiles without creating auth users
+            const { error } = await supabase
+                .from('profiles')
+                .upsert(transformed, {
+                    onConflict: 'email',
+                });
+
+            if (error) {
+                errors.push({
+                    record: shopSiteCustomer.email,
+                    error: error.message,
+                    timestamp: new Date().toISOString(),
+                });
+                failed++;
+            } else {
+                if (isUpdate) {
+                    updated++;
+                } else {
+                    created++;
+                    existingEmails.add(transformed.email);
+                }
+            }
+        } catch (err) {
+            errors.push({
+                record: shopSiteCustomer.email,
+                error: err instanceof Error ? err.message : 'Unknown error',
+                timestamp: new Date().toISOString(),
+            });
+            failed++;
+        }
+    }
+
+    revalidatePath('/admin/migration');
+
+    return {
+        success: failed === 0,
+        processed: shopSiteCustomers.length,
+        created,
+        updated,
+        failed,
+        errors,
+        duration: Date.now() - startTime,
+    };
+}
+
+/**
+ * Form action wrapper for syncCustomers.
+ */
+export async function syncCustomersFormAction(): Promise<void> {
+    await syncCustomersAction();
+}
+
+/**
+ * Sync orders from ShopSite to Supabase.
+ * Maps orders to profiles and products using email and SKU.
+ */
+export async function syncOrdersAction(): Promise<SyncResult> {
+    const startTime = Date.now();
+    const errors: MigrationError[] = [];
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+
+    const credentials = await getCredentials();
+    if (!credentials) {
+        return {
+            success: false,
+            processed: 0,
+            created: 0,
+            updated: 0,
+            failed: 0,
+            errors: [{ record: 'N/A', error: 'No credentials configured', timestamp: new Date().toISOString() }],
+            duration: Date.now() - startTime,
+        };
+    }
+
+    const supabase = await createClient();
+    const config: ShopSiteConfig = {
+        storeUrl: credentials.storeUrl,
+        merchantId: credentials.merchantId,
+        password: credentials.password,
+    };
+
+    const client = new ShopSiteClient(config);
+    const shopSiteOrders = await client.fetchOrders();
+
+    if (shopSiteOrders.length === 0) {
+        return {
+            success: true,
+            processed: 0,
+            created: 0,
+            updated: 0,
+            failed: 0,
+            errors: [],
+            duration: Date.now() - startTime,
+        };
+    }
+
+    // Build lookup maps for profiles and products
+    const { data: profiles } = await supabase.from('profiles').select('id, email');
+    const { data: products } = await supabase.from('products').select('id, sku');
+
+    const profileIdMap = new Map<string, string>();
+    (profiles || []).forEach((p: { id: string; email: string }) => {
+        if (p.email) profileIdMap.set(p.email.toLowerCase(), p.id);
+    });
+
+    const productIdMap = new Map<string, string>();
+    (products || []).forEach((p: { id: string; sku: string }) => {
+        if (p.sku) productIdMap.set(p.sku, p.id);
+    });
+
+    // Check for existing legacy orders
+    const { data: existingOrders } = await supabase
+        .from('orders')
+        .select('legacy_order_number');
+
+    const existingOrderNumbers = new Set(
+        (existingOrders || [])
+            .map((o: { legacy_order_number: string }) => o.legacy_order_number)
+            .filter(Boolean)
+    );
+
+    // Process orders in batches
+    const orderBatches = batchOrders(shopSiteOrders, 25);
+
+    for (const batch of orderBatches) {
+        for (const shopSiteOrder of batch) {
+            try {
+                // Skip if already imported
+                if (existingOrderNumbers.has(shopSiteOrder.orderNumber)) {
+                    updated++;
+                    continue;
+                }
+
+                const { order: orderData, items } = transformShopSiteOrder(
+                    shopSiteOrder,
+                    profileIdMap,
+                    productIdMap
+                );
+
+                // Insert order
+                const { data: newOrder, error: orderError } = await supabase
+                    .from('orders')
+                    .insert(orderData)
+                    .select('id')
+                    .single();
+
+                if (orderError) {
+                    errors.push({
+                        record: shopSiteOrder.orderNumber,
+                        error: orderError.message,
+                        timestamp: new Date().toISOString(),
+                    });
+                    failed++;
+                    continue;
+                }
+
+                // Insert order items
+                if (items.length > 0 && newOrder) {
+                    const orderItems = items.map(item => ({
+                        ...item,
+                        order_id: newOrder.id,
+                    }));
+
+                    const { error: itemsError } = await supabase
+                        .from('order_items')
+                        .insert(orderItems);
+
+                    if (itemsError) {
+                        errors.push({
+                            record: `${shopSiteOrder.orderNumber} items`,
+                            error: itemsError.message,
+                            timestamp: new Date().toISOString(),
+                        });
+                        // Don't count as full failure, order was created
+                    }
+                }
+
+                created++;
+                existingOrderNumbers.add(shopSiteOrder.orderNumber);
+            } catch (err) {
+                errors.push({
+                    record: shopSiteOrder.orderNumber,
+                    error: err instanceof Error ? err.message : 'Unknown error',
+                    timestamp: new Date().toISOString(),
+                });
+                failed++;
+            }
+        }
+    }
+
+    revalidatePath('/admin/orders');
+    revalidatePath('/admin/migration');
+
+    return {
+        success: failed === 0,
+        processed: shopSiteOrders.length,
+        created,
+        updated,
+        failed,
+        errors,
+        duration: Date.now() - startTime,
+    };
+}
+
+/**
+ * Form action wrapper for syncOrders.
+ */
+export async function syncOrdersFormAction(): Promise<void> {
+    await syncOrdersAction();
 }

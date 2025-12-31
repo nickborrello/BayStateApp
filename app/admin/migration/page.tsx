@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Database, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
-import { getCredentials, saveCredentialsAction, syncProductsFormAction } from './actions';
+import { getCredentials, saveCredentialsAction, syncProductsFormAction, syncCustomersFormAction, syncOrdersFormAction } from './actions';
 
 export default async function AdminMigrationPage() {
     const credentials = await getCredentials();
@@ -128,29 +128,35 @@ export default async function AdminMigrationPage() {
                             {/* Customers Sync */}
                             <div className="rounded-lg border p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                                    <CheckCircle className="h-5 w-5 text-green-600" />
                                     <span className="font-medium">Customers</span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-3">
                                     Import registered customers
                                 </p>
-                                <Button variant="outline" size="sm" disabled>
-                                    Coming Soon
-                                </Button>
+                                <form action={syncCustomersFormAction}>
+                                    <Button type="submit" variant="default" size="sm">
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Sync Now
+                                    </Button>
+                                </form>
                             </div>
 
                             {/* Orders Sync */}
                             <div className="rounded-lg border p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                                    <CheckCircle className="h-5 w-5 text-green-600" />
                                     <span className="font-medium">Orders</span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-3">
                                     Import historical orders
                                 </p>
-                                <Button variant="outline" size="sm" disabled>
-                                    Coming Soon
-                                </Button>
+                                <form action={syncOrdersFormAction}>
+                                    <Button type="submit" variant="default" size="sm">
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Sync Now
+                                    </Button>
+                                </form>
                             </div>
                         </div>
                     </CardContent>
