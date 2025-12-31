@@ -65,7 +65,6 @@ export async function updateSession(request: NextRequest) {
 
     // 1. Non-admin/staff should not access any admin route
     if (role !== 'admin' && role !== 'staff') {
-      console.log(`[Middleware] Unauthorized access to ${request.nextUrl.pathname}. User: ${user.id}, Role: ${role}`)
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
       url.searchParams.set('error', 'unauthorized')
