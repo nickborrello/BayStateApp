@@ -211,28 +211,57 @@ export class ShopSiteClient {
     private parseOrdersXml(xmlText: string): ShopSiteOrder[] {
         const orders: ShopSiteOrder[] = [];
 
-        const orderMatches = xmlText.match(/<order>([\s\S]*?)<\/order>/gi);
+        // Match <Order>...</Order> blocks (PascalCase per DTD)
+        const orderMatches = xmlText.match(/<Order>([\s\S]*?)<\/Order>/gi);
         if (!orderMatches) return orders;
 
         for (const orderXml of orderMatches) {
-            const orderNumber = this.extractXmlValue(orderXml, 'order_number');
-            const orderDate = this.extractXmlValue(orderXml, 'order_date');
-            const grandTotal = parseFloat(this.extractXmlValue(orderXml, 'grand_total') || '0');
-            const tax = parseFloat(this.extractXmlValue(orderXml, 'tax') || '0');
-            const shippingTotal = parseFloat(this.extractXmlValue(orderXml, 'shipping_total') || '0');
-            const customerEmail = this.extractXmlValue(orderXml, 'customer_email');
+            // Extract order-level fields (PascalCase per DTD)
+            const orderNumber = this.extractXmlValue(orderXml, 'OrderNumber');
+            const orderDate = this.extractXmlValue(orderXml, 'OrderDate');
 
-            // Parse order items
+            // Extract customer email from Billing section
+            const billingMatch = orderXml.match(/<Billing>([\s\S]*?)<\/Billing>/i);
+            const customerEmail = billingMatch
+                ? this.extractXmlValue(billingMatch[1], 'Email') || ''
+                : '';
+
+            // Extract totals from Totals section
+            const totalsMatch = orderXml.match(/<Totals>([\s\S]*?)<\/Totals>/i);
+            let grandTotal = 0;
+            let tax = 0;
+            let shippingTotal = 0;
+            if (totalsMatch) {
+                grandTotal = parseFloat(this.extractXmlValue(totalsMatch[1], 'GrandTotal') || '0');
+                // Tax is nested: <Tax><TaxAmount>...</TaxAmount></Tax>
+                const taxMatch = totalsMatch[1].match(/<Tax>([\s\S]*?)<\/Tax>/i);
+                if (taxMatch) {
+                    tax = parseFloat(this.extractXmlValue(taxMatch[1], 'TaxAmount') || '0');
+                }
+                // ShippingTotal is nested: <ShippingTotal><Total>...</Total></ShippingTotal>
+                const shippingMatch = totalsMatch[1].match(/<ShippingTotal>([\s\S]*?)<\/ShippingTotal>/i);
+                if (shippingMatch) {
+                    shippingTotal = parseFloat(this.extractXmlValue(shippingMatch[1], 'Total') || '0');
+                }
+            }
+
+            // Parse order items from Shipping/Products/Product (per DTD structure)
             const items: ShopSiteOrderItem[] = [];
-            const itemMatches = orderXml.match(/<item>([\s\S]*?)<\/item>/gi);
-            if (itemMatches) {
-                for (const itemXml of itemMatches) {
-                    const itemSku = this.extractXmlValue(itemXml, 'sku');
-                    const quantity = parseInt(this.extractXmlValue(itemXml, 'quantity') || '0', 10);
-                    const itemPrice = parseFloat(this.extractXmlValue(itemXml, 'price') || '0');
+            const shippingMatch = orderXml.match(/<Shipping>([\s\S]*?)<\/Shipping>/i);
+            if (shippingMatch) {
+                const productsMatch = shippingMatch[1].match(/<Products>([\s\S]*?)<\/Products>/i);
+                if (productsMatch) {
+                    const productMatches = productsMatch[1].match(/<Product>([\s\S]*?)<\/Product>/gi);
+                    if (productMatches) {
+                        for (const productXml of productMatches) {
+                            const itemSku = this.extractXmlValue(productXml, 'SKU');
+                            const quantity = parseInt(this.extractXmlValue(productXml, 'Quantity') || '0', 10);
+                            const itemPrice = parseFloat(this.extractXmlValue(productXml, 'ItemPrice') || '0');
 
-                    if (itemSku) {
-                        items.push({ sku: itemSku, quantity, price: itemPrice });
+                            if (itemSku) {
+                                items.push({ sku: itemSku, quantity, price: itemPrice });
+                            }
+                        }
                     }
                 }
             }
