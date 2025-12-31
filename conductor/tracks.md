@@ -42,4 +42,14 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Active Tracks
 
-*No active tracks. Use `/newTrack` to start a new one.*
+### Database Security Hardening
+- **Location:** `tracks/security_hardening_20251231/`
+- **Status:** ✅ Complete
+- **Description:** Enable RLS on public tables and fix security definer view.
+
+---
+
+### ShopSite Data Sync
+- **Location:** `tracks/shopsite_sync_20251230/`
+- **Status:** ✅ Complete
+- **Description:** Build a tool in the Admin Portal to sync data from ShopSite.
