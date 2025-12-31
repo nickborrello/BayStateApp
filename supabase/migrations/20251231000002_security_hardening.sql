@@ -37,27 +37,52 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products_ingestion ENABLE ROW LEVEL SECURITY;
 
 -- 3. Add Public Read Policies (Allow anyone to view storefront data)
+-- 3. Add Public Read Policies (Allow anyone to view storefront data)
+DROP POLICY IF EXISTS "Public Read Categories" ON public.categories;
 CREATE POLICY "Public Read Categories" ON public.categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Product Types" ON public.product_types;
 CREATE POLICY "Public Read Product Types" ON public.product_types FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Services" ON public.services;
 CREATE POLICY "Public Read Services" ON public.services FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Brands" ON public.brands;
 CREATE POLICY "Public Read Brands" ON public.brands FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Products" ON public.products;
 CREATE POLICY "Public Read Products" ON public.products FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Read Site Settings" ON public.site_settings;
 CREATE POLICY "Public Read Site Settings" ON public.site_settings FOR SELECT USING (true);
 
 -- 4. Ingestion table needs specific policies for the view to work
 -- Allowing public to select from products_ingestion but ONLY for published products
 -- This ensures the SECURITY INVOKER view works for public users
+DROP POLICY IF EXISTS "Public Read Published Ingestion" ON public.products_ingestion;
 CREATE POLICY "Public Read Published Ingestion" ON public.products_ingestion 
 FOR SELECT USING (pipeline_status = 'published');
 
 -- 5. Add Admin/Staff Write Policies for site_settings
+DROP POLICY IF EXISTS "Admin/Staff Write Site Settings" ON public.site_settings;
 CREATE POLICY "Admin/Staff Write Site Settings" ON public.site_settings
 FOR ALL USING (public.is_staff());
 
 -- 6. Add Admin/Staff Write Policies for other tables (for management)
+DROP POLICY IF EXISTS "Admin/Staff Write Categories" ON public.categories;
 CREATE POLICY "Admin/Staff Write Categories" ON public.categories FOR ALL USING (public.is_staff());
+
+DROP POLICY IF EXISTS "Admin/Staff Write Product Types" ON public.product_types;
 CREATE POLICY "Admin/Staff Write Product Types" ON public.product_types FOR ALL USING (public.is_staff());
+
+DROP POLICY IF EXISTS "Admin/Staff Write Services" ON public.services;
 CREATE POLICY "Admin/Staff Write Services" ON public.services FOR ALL USING (public.is_staff());
+
+DROP POLICY IF EXISTS "Admin/Staff Write Brands" ON public.brands;
 CREATE POLICY "Admin/Staff Write Brands" ON public.brands FOR ALL USING (public.is_staff());
+
+DROP POLICY IF EXISTS "Admin/Staff Write Products" ON public.products;
 CREATE POLICY "Admin/Staff Write Products" ON public.products FOR ALL USING (public.is_staff());
+
+DROP POLICY IF EXISTS "Admin/Staff Write Ingestion" ON public.products_ingestion;
 CREATE POLICY "Admin/Staff Write Ingestion" ON public.products_ingestion FOR ALL USING (public.is_staff());

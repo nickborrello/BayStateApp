@@ -272,31 +272,106 @@ export class ShopSiteClient {
         if (!productMatches) return products;
 
         for (const productXml of productMatches) {
-            // Support both variations found in ShopSite XML exports/API
+            // Check if product is disabled - skip disabled products to save storage
+            const disabledRaw = this.extractXmlValue(productXml, 'ProductDisabled') ||
+                this.extractXmlValue(productXml, 'productDisabled');
+            const isDisabled = disabledRaw?.toLowerCase() === 'checked';
+
+            // Skip disabled products (user preference for free Supabase tier)
+            if (isDisabled) {
+                continue;
+            }
+
+            // Core fields - support both lowercase and PascalCase
             const sku = this.extractXmlValue(productXml, 'sku') || this.extractXmlValue(productXml, 'SKU');
             const name = this.extractXmlValue(productXml, 'name') || this.extractXmlValue(productXml, 'Name');
-            const price = parseFloat(this.extractXmlValue(productXml, 'price') || this.extractXmlValue(productXml, 'Price') || '0');
-            const description = this.extractXmlValue(productXml, 'description') || this.extractXmlValue(productXml, 'Name'); // Some ShopSite exports use Name for description if empty
-            const quantityOnHand = parseInt(this.extractXmlValue(productXml, 'quantity_on_hand') || this.extractXmlValue(productXml, 'Quantity') || '0', 10);
-            const imageUrl = this.extractXmlValue(productXml, 'graphic') || this.extractXmlValue(productXml, 'Graphic');
-            const weight = parseFloat(this.extractXmlValue(productXml, 'Weight') || this.extractXmlValue(productXml, 'weight') || '0');
-            const taxable = this.extractXmlValue(productXml, 'Taxable') === 'Yes' || this.extractXmlValue(productXml, 'taxable') === 'Yes';
-            const productType = this.extractXmlValue(productXml, 'ProdType') || this.extractXmlValue(productXml, 'prod_type');
 
-            if (sku && name) {
-                products.push({
-                    sku,
-                    name,
-                    price,
-                    description,
-                    quantityOnHand,
-                    imageUrl,
-                    weight,
-                    taxable,
-                    productType,
-                    rawXml: productXml,
-                });
+            // Skip products without SKU or name
+            if (!sku || !name) {
+                continue;
             }
+
+            const price = parseFloat(this.extractXmlValue(productXml, 'price') || this.extractXmlValue(productXml, 'Price') || '0');
+            const saleAmountRaw = this.extractXmlValue(productXml, 'SaleAmount') || this.extractXmlValue(productXml, 'saleAmount');
+            const saleAmount = saleAmountRaw ? parseFloat(saleAmountRaw) : undefined;
+
+            const description = this.extractXmlValue(productXml, 'ProductDescription') ||
+                this.extractXmlValue(productXml, 'description') ||
+                this.extractXmlValue(productXml, 'Name');
+
+            const quantityOnHandRaw = this.extractXmlValue(productXml, 'QuantityOnHand') ||
+                this.extractXmlValue(productXml, 'quantity_on_hand') ||
+                this.extractXmlValue(productXml, 'Quantity') || '0';
+            const quantityOnHand = parseInt(quantityOnHandRaw, 10) || 0;
+
+            const lowStockRaw = this.extractXmlValue(productXml, 'LowStockThreshold');
+            const lowStockThreshold = lowStockRaw ? parseInt(lowStockRaw, 10) : undefined;
+
+            // Image - primary graphic
+            let imageUrl = this.extractXmlValue(productXml, 'Graphic') || this.extractXmlValue(productXml, 'graphic');
+            if (imageUrl === 'none') imageUrl = '';
+
+            // Additional images (MoreInfoImage1-20)
+            const additionalImages: string[] = [];
+            for (let i = 1; i <= 20; i++) {
+                const img = this.extractXmlValue(productXml, `MoreInfoImage${i}`);
+                if (img && img !== 'none') {
+                    additionalImages.push(img);
+                }
+            }
+
+            // Physical properties
+            const weight = parseFloat(this.extractXmlValue(productXml, 'Weight') || this.extractXmlValue(productXml, 'weight') || '0');
+            const taxableRaw = this.extractXmlValue(productXml, 'Taxable') || this.extractXmlValue(productXml, 'taxable');
+            const taxable = taxableRaw?.toLowerCase() === 'checked' || taxableRaw?.toLowerCase() === 'yes';
+
+            const productType = this.extractXmlValue(productXml, 'ProductType') ||
+                this.extractXmlValue(productXml, 'ProdType') ||
+                this.extractXmlValue(productXml, 'prod_type');
+
+            // ShopSite identifiers
+            const productId = this.extractXmlValue(productXml, 'ProductID');
+            const productGuid = this.extractXmlValue(productXml, 'ProductGUID');
+            const gtin = this.extractXmlValue(productXml, 'GTIN') || this.extractXmlValue(productXml, 'gtin');
+            const brand = this.extractXmlValue(productXml, 'Brand') || this.extractXmlValue(productXml, 'brand');
+
+            // Availability and status
+            const availability = this.extractXmlValue(productXml, 'Availability') || this.extractXmlValue(productXml, 'availability');
+
+            // SEO and content
+            const fileName = this.extractXmlValue(productXml, 'FileName');
+            const moreInfoText = this.extractXmlValue(productXml, 'MoreInformationText');
+            const searchKeywords = this.extractXmlValue(productXml, 'SearchKeywords');
+
+            // Ordering controls
+            const minQtyRaw = this.extractXmlValue(productXml, 'MinimumQuantity');
+            const minimumQuantity = minQtyRaw ? parseInt(minQtyRaw, 10) : undefined;
+
+            products.push({
+                sku,
+                name,
+                price,
+                saleAmount,
+                description,
+                quantityOnHand,
+                lowStockThreshold,
+                imageUrl,
+                additionalImages: additionalImages.length > 0 ? additionalImages : undefined,
+                weight,
+                taxable,
+                productType,
+                productId,
+                productGuid,
+                gtin,
+                brand,
+                isDisabled,
+                availability,
+                fileName,
+                moreInfoText,
+                searchKeywords,
+                minimumQuantity,
+                rawXml: productXml,
+            });
         }
 
         return products;

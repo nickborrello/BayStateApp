@@ -65,6 +65,82 @@ describe('ShopSite XML Parsing', () => {
             const products = (client as any).parseProductsXml(xml);
             expect(products[0].name).toBe('Product with <Special> Characters');
         });
+
+        it('should parse extended product fields from full ShopSite export', () => {
+            const xml = `
+                <Product>
+                    <SKU>71859002217</SKU>
+                    <Name>Kaytee Bermuda Grass 16 oz.</Name>
+                    <Price>4.99</Price>
+                    <SaleAmount>3.99</SaleAmount>
+                    <ProductDisabled></ProductDisabled>
+                    <GTIN>071859002217</GTIN>
+                    <Brand>Kaytee</Brand>
+                    <Weight>1.02</Weight>
+                    <Taxable>checked</Taxable>
+                    <Availability>in stock</Availability>
+                    <FileName>kaytee-bermuda-grass-16-oz.html</FileName>
+                    <MinimumQuantity>0</MinimumQuantity>
+                    <ProductID>378</ProductID>
+                    <ProductGUID>eda0c8b0-cb3b-11e5-a172-0025908f7730</ProductGUID>
+                    <MoreInformationText>Full description here</MoreInformationText>
+                    <ProductDescription>Short description</ProductDescription>
+                </Product>
+            `;
+            const products = (client as any).parseProductsXml(xml);
+            expect(products).toHaveLength(1);
+            expect(products[0]).toMatchObject({
+                sku: '71859002217',
+                name: 'Kaytee Bermuda Grass 16 oz.',
+                price: 4.99,
+                saleAmount: 3.99,
+                gtin: '071859002217',
+                brand: 'Kaytee',
+                weight: 1.02,
+                taxable: true,
+                availability: 'in stock',
+                fileName: 'kaytee-bermuda-grass-16-oz.html',
+                productId: '378',
+                productGuid: 'eda0c8b0-cb3b-11e5-a172-0025908f7730',
+                moreInfoText: 'Full description here',
+                description: 'Short description',
+            });
+        });
+
+        it('should skip disabled products', () => {
+            const xml = `
+                <Products>
+                    <Product>
+                        <SKU>ENABLED-SKU</SKU>
+                        <Name>Enabled Product</Name>
+                        <ProductDisabled></ProductDisabled>
+                    </Product>
+                    <Product>
+                        <SKU>DISABLED-SKU</SKU>
+                        <Name>Disabled Product</Name>
+                        <ProductDisabled>checked</ProductDisabled>
+                    </Product>
+                </Products>
+            `;
+            const products = (client as any).parseProductsXml(xml);
+            expect(products).toHaveLength(1);
+            expect(products[0].sku).toBe('ENABLED-SKU');
+        });
+
+        it('should filter out "none" from image fields', () => {
+            const xml = `
+                <Product>
+                    <SKU>IMG-TEST</SKU>
+                    <Name>Image Test</Name>
+                    <Graphic>none</Graphic>
+                    <MoreInfoImage1>real-image.jpg</MoreInfoImage1>
+                    <MoreInfoImage2>none</MoreInfoImage2>
+                </Product>
+            `;
+            const products = (client as any).parseProductsXml(xml);
+            expect(products[0].imageUrl).toBe('');
+            expect(products[0].additionalImages).toEqual(['real-image.jpg']);
+        });
     });
 
     describe('Order Parsing', () => {

@@ -4,7 +4,7 @@
  * Handles transformation and sync of products from ShopSite to Supabase.
  */
 
-import { ShopSiteProduct, SyncResult, MigrationError } from './types';
+import { ShopSiteProduct } from './types';
 
 /**
  * Generate a URL-friendly slug from a product name.
@@ -28,20 +28,66 @@ export function buildProductSlug(name: string, sku?: string): string {
 /**
  * Transform a ShopSite product into the Supabase products table format.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function transformShopSiteProduct(product: ShopSiteProduct): any {
+    // Collect all images (primary + additional)
+    const images: string[] = [];
+    if (product.imageUrl) {
+        images.push(product.imageUrl);
+    }
+    if (product.additionalImages) {
+        images.push(...product.additionalImages);
+    }
+
+    // Determine stock status based on quantity and disabled state
+    let stockStatus: 'in_stock' | 'out_of_stock' | 'pre_order' = 'out_of_stock';
+    if (product.isDisabled) {
+        stockStatus = 'out_of_stock';
+    } else if (product.quantityOnHand > 0) {
+        stockStatus = 'in_stock';
+    } else if (product.availability?.toLowerCase().includes('pre')) {
+        stockStatus = 'pre_order';
+    }
+
     return {
+        // Core fields
         sku: product.sku,
         name: product.name,
         slug: buildProductSlug(product.name),
         price: product.price,
-        description: product.description,
-        stock_status: product.quantityOnHand > 0 ? 'in_stock' : 'out_of_stock',
-        images: product.imageUrl ? [product.imageUrl] : [],
-        upc: product.sku,
-        weight: product.weight,
+        sale_price: product.saleAmount || null,
+        description: product.description || null,
+        stock_status: stockStatus,
+        images,
+
+        // Physical properties
+        weight: product.weight || null,
         taxable: product.taxable ?? true,
-        shopsite_product_type: product.productType,
-        shopsite_data: product.rawXml ? { raw_xml: product.rawXml } : {},
+
+        // ShopSite identifiers
+        gtin: product.gtin || null,
+        shopsite_product_id: product.productId || null,
+        shopsite_guid: product.productGuid || null,
+        shopsite_product_type: product.productType || null,
+
+        // Status
+        is_disabled: product.isDisabled ?? false,
+        availability: product.availability || null,
+
+        // Inventory controls
+        minimum_quantity: product.minimumQuantity || 1,
+        low_stock_threshold: product.lowStockThreshold || null,
+
+        // SEO and legacy
+        legacy_filename: product.fileName || null,
+        search_keywords: product.searchKeywords || null,
+
+        // Extended data as JSONB
+        shopsite_data: {
+            more_info_text: product.moreInfoText || null,
+            brand: product.brand || null,
+            raw_xml: product.rawXml || null,
+        },
     };
 }
 

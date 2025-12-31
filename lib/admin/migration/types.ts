@@ -26,14 +26,32 @@ export interface ShopSiteProduct {
     sku: string;
     name: string;
     price: number;
+    saleAmount?: number;              // <SaleAmount> - sale price when on sale
     description: string;
     quantityOnHand: number;
+    lowStockThreshold?: number;       // <LowStockThreshold>
     imageUrl: string;
+    additionalImages?: string[];      // MoreInfoImage1-20 (non-"none" values)
     weight?: number;
     taxable?: boolean;
-    cost?: number; // shopsite_cost
-    productType?: string; // shopsite_product_type
-    rawXml?: any; // To store in shopsite_data
+    cost?: number;                    // shopsite_cost
+    productType?: string;             // <ProductType> e.g., "Tangible"
+    // ShopSite-specific identifiers
+    productId?: string;               // <ProductID> - ShopSite internal ID
+    productGuid?: string;             // <ProductGUID> - ShopSite UUID
+    gtin?: string;                    // <GTIN> - barcode (UPC/EAN)
+    brand?: string;                   // <Brand>
+    // Status fields
+    isDisabled?: boolean;             // <ProductDisabled> === 'checked'
+    availability?: string;            // <Availability> ('in stock', 'out of stock', etc.)
+    // SEO and content
+    fileName?: string;                // <FileName> - legacy URL slug
+    moreInfoText?: string;            // <MoreInformationText> - HTML product details
+    searchKeywords?: string;          // <SearchKeywords>
+    // Ordering controls
+    minimumQuantity?: number;         // <MinimumQuantity>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rawXml?: any;                     // To store in shopsite_data
 }
 
 export interface ShopSiteOrderItem {
@@ -66,6 +84,7 @@ export interface ShopSiteOrder {
     shippingAddress?: AddressInfo;
     paymentMethod?: string; // From Payment section
     items: ShopSiteOrderItem[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rawXml?: any; // To store in shopsite_data
 }
 
@@ -77,6 +96,7 @@ export interface ShopSiteCustomer {
     billingCity: string;
     billingState: string;
     billingZip: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rawXml?: any; // To store in shopsite_data
 }
 
