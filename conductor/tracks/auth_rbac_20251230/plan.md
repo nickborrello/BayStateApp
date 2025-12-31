@@ -89,9 +89,9 @@
 - [ ] Task: Write failing test for server-side role enforcement on `/admin/users`
 
 ### 5.2 User Management UI
-- [ ] Task: Create `/admin/users` page for listing and searching customers
-- [ ] Task: Implement role assignment (Staff/Admin) for internal users
-- [ ] Add view for specific user's order history within admin panel
+- [x] Task: Create `/admin/users` page for listing and searching customers c036412
+- [x] Task: Implement role assignment (Staff/Admin) for internal users c036412
+- [x] Add view for specific user's order history within admin panel c036412
 
 ### 5.3 Phase Checkpoint
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Admin User Management' (Protocol in workflow.md)
