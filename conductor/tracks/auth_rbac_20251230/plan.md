@@ -85,8 +85,8 @@
 ## Phase 5: Admin User Management [checkpoint: ]
 
 ### 5.1 RBAC Enforcement
-- [ ] Task: Update admin layouts to hide "restricted" nav items for `staff`
-- [ ] Task: Write failing test for server-side role enforcement on `/admin/users`
+- [x] Task: Update admin layouts to hide "restricted" nav items for `staff` 243ca1a
+- [x] Task: Write failing test for server-side role enforcement on `/admin/users` 243ca1a
 
 ### 5.2 User Management UI
 - [x] Task: Create `/admin/users` page for listing and searching customers c036412
