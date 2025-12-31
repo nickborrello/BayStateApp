@@ -1,10 +1,10 @@
 # Migration Plan: ShopSite to Supabase (Automated API Sync)
 
-## Phase 1: API Client & Infrastructure
+## Phase 1: API Client & Infrastructure [checkpoint: 5190c69]
 - [x] Task: Develop ShopSite API Client in `lib/admin/migration/shopsite-client.ts` [2ec7f8a]
 - [x] Task: Implement authentication for `db_xml.cgi` and Order Download API [2ec7f8a]
 - [x] Task: Create settings UI in `app/admin/migration/page.tsx` for API credentials [0c915e0]
-- [~] Task: Conductor - User Manual Verification 'API Client & Infrastructure' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'API Client & Infrastructure' (Protocol in workflow.md)
 
 ## Phase 2: Product Synchronization
 - [ ] Task: Develop `syncProducts` Server Action using the API client
