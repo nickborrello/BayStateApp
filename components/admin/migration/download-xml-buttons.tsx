@@ -22,16 +22,33 @@ export function DownloadXmlButtons({ className }: DownloadXmlButtonsProps) {
                 return;
             }
 
+            // Try to get filename from header
+            let filename = `shopsite-${type}-${new Date().toISOString().split('T')[0]}.xml`;
+            const disposition = response.headers.get('Content-Disposition');
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                if (matches != null && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
             // Get the blob and create download link
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.style.display = 'none'; // Ensure it's hidden
             a.href = url;
-            a.download = `shopsite-${type}-${new Date().toISOString().split('T')[0]}.xml`;
+            a.download = filename;
+
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+
+            // Cleanup
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+
         } catch (err) {
             alert(`Download failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
         } finally {
