@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Database, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
-import { getCredentials, saveCredentialsAction, testConnectionAction } from './actions';
+import { getCredentials, saveCredentialsAction, syncProductsFormAction } from './actions';
 
 export default async function AdminMigrationPage() {
     const credentials = await getCredentials();
@@ -111,15 +111,18 @@ export default async function AdminMigrationPage() {
                             {/* Products Sync */}
                             <div className="rounded-lg border p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                                    <CheckCircle className="h-5 w-5 text-green-600" />
                                     <span className="font-medium">Products</span>
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-3">
                                     Import product catalog from ShopSite
                                 </p>
-                                <Button variant="outline" size="sm" disabled>
-                                    Coming Soon
-                                </Button>
+                                <form action={syncProductsFormAction}>
+                                    <Button type="submit" variant="default" size="sm">
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Sync Now
+                                    </Button>
+                                </form>
                             </div>
 
                             {/* Customers Sync */}

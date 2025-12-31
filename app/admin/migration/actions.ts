@@ -203,3 +203,11 @@ export async function syncProductsAction(): Promise<SyncResult> {
         duration: Date.now() - startTime,
     };
 }
+
+/**
+ * Form action wrapper for syncProducts.
+ * This wrapper doesn't return a value, making it compatible with form action prop.
+ */
+export async function syncProductsFormAction(): Promise<void> {
+    await syncProductsAction();
+}
