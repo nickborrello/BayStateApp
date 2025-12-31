@@ -12,6 +12,7 @@ import {
   Users,
   Palette,
   RefreshCw,
+  LogOut,
 } from 'lucide-react';
 
 interface NavItem {
@@ -117,13 +118,23 @@ export function AdminSidebar({ userRole = 'staff' }: AdminSidebarProps) {
         ))}
       </nav>
 
-      {/* Role indicator */}
+      {/* Footer: Role & Exit */}
       <div className="border-t border-gray-800 p-4">
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>Role</span>
-          <span className={`px-2 py-0.5 rounded ${isAdmin ? 'bg-purple-900 text-purple-300' : 'bg-gray-700 text-gray-300'}`}>
-            {userRole}
-          </span>
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center space-x-2 text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            <LogOut className="h-4 w-4 rotate-180" />
+            <span>Exit</span>
+          </Link>
+          
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="text-gray-500">Role:</span>
+            <span className={`px-2 py-0.5 rounded ${isAdmin ? 'bg-purple-900/50 text-purple-300' : 'bg-gray-800 text-gray-400'}`}>
+              {userRole}
+            </span>
+          </div>
         </div>
       </div>
     </div>

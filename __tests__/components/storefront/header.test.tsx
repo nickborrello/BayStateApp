@@ -43,4 +43,11 @@ describe('StorefrontHeader', () => {
     render(<StorefrontHeader user={null} />);
     expect(screen.getByTestId('user-menu')).toBeInTheDocument();
   });
+
+  it('is hidden on mobile and visible on desktop', () => {
+    const { container } = render(<StorefrontHeader user={null} />);
+    const headerElement = container.querySelector('header');
+    // Using max-md:hidden to hide on mobile only
+    expect(headerElement).toHaveClass('max-md:hidden');
+  });
 });

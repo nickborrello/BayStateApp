@@ -62,9 +62,9 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {serverError && (
-                    <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 rounded-md">
+                    <div className="p-4 text-base font-medium text-destructive bg-destructive/10 rounded-md">
                         {serverError}
                     </div>
                 )}
@@ -73,24 +73,24 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                     name="fullName"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel className="text-base">Full Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="John Doe" {...field} disabled={loading} />
+                                <Input placeholder="John Doe" {...field} disabled={loading} className="h-12 text-base" />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
                     <FormField
                         control={form.control}
                         name="addressLine1"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Address Line 1</FormLabel>
+                                <FormLabel className="text-base">Address Line 1</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="123 Main St" {...field} disabled={loading} />
+                                    <Input placeholder="123 Main St" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -101,9 +101,9 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                         name="addressLine2"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Address Line 2 (Optional)</FormLabel>
+                                <FormLabel className="text-base">Address Line 2 (Optional)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Apt 4B" {...field} disabled={loading} />
+                                    <Input placeholder="Apt 4B" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -111,15 +111,15 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                     />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
                     <FormField
                         control={form.control}
                         name="city"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>City</FormLabel>
+                                <FormLabel className="text-base">City</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Anytown" {...field} disabled={loading} />
+                                    <Input placeholder="Anytown" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -130,9 +130,9 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                         name="state"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>State</FormLabel>
+                                <FormLabel className="text-base">State</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="MA" {...field} disabled={loading} />
+                                    <Input placeholder="MA" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -143,9 +143,9 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                         name="zipCode"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Zip Code</FormLabel>
+                                <FormLabel className="text-base">Zip Code</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="01234" {...field} disabled={loading} />
+                                    <Input placeholder="01234" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -158,9 +158,9 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                     name="phone"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Phone (Optional)</FormLabel>
+                            <FormLabel className="text-base">Phone (Optional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="" {...field} disabled={loading} />
+                                <Input placeholder="" {...field} disabled={loading} className="h-12 text-base" />
                             </FormControl>
                             <FormDescription>For delivery updates.</FormDescription>
                             <FormMessage />
@@ -172,22 +172,23 @@ export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
                     control={form.control}
                     name="isDefault"
                     render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 min-h-[56px]">
                             <FormControl>
                                 <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="h-5 w-5"
                                 />
                             </FormControl>
                             <div className="space-y-1 leading-none">
-                                <FormLabel>Set as default address</FormLabel>
+                                <FormLabel className="text-base font-medium">Set as default address</FormLabel>
                             </div>
                         </FormItem>
                     )}
                 />
 
                 <div className="pt-2 flex justify-end">
-                    <Button type="submit" disabled={loading}>
+                    <Button type="submit" disabled={loading} className="w-full sm:w-auto h-12 text-base">
                         {loading ? "Saving..." : "Save Address"}
                     </Button>
                 </div>

@@ -2,6 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OAuthButtons } from '@/components/auth/oauth-buttons';
 import { loginWithOAuth } from '@/lib/auth/actions';
 
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+    useSearchParams: () => new URLSearchParams(),
+}));
+
 // Mock the server action
 jest.mock('@/lib/auth/actions', () => ({
     loginWithOAuth: jest.fn(),
@@ -21,7 +26,7 @@ describe('OAuthButtons', () => {
         fireEvent.click(screen.getByRole('button', { name: /google/i }));
 
         await waitFor(() => {
-            expect(loginWithOAuth).toHaveBeenCalledWith('google');
+            expect(loginWithOAuth).toHaveBeenCalledWith('google', undefined);
         });
     });
 });

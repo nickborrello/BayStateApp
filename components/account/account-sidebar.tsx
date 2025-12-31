@@ -18,7 +18,7 @@ export function AccountSidebar() {
     const pathname = usePathname()
 
     return (
-        <nav className="flex flex-col space-y-1">
+        <nav className="flex flex-row overflow-x-auto md:flex-col space-x-2 md:space-x-0 md:space-y-1 pb-2 md:pb-0 scrollbar-hide">
             {items.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -26,8 +26,10 @@ export function AccountSidebar() {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                            "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md hover:bg-zinc-100 transition-colors",
-                            isActive ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:text-zinc-900"
+                            "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors flex-shrink-0",
+                            isActive ? "bg-zinc-100 text-zinc-900" : "text-zinc-500 hover:text-zinc-900",
+                            // Mobile specific adjustments for touch targets
+                            "min-h-[44px]"
                         )}
                     >
                         <item.icon className={cn("h-4 w-4", isActive ? "text-zinc-900" : "text-zinc-500")} />
@@ -35,8 +37,8 @@ export function AccountSidebar() {
                     </Link>
                 )
             })}
-            <form action={signOutAction} className="pt-4 mt-4 border-t">
-                <button type="submit" className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors">
+            <form action={signOutAction} className="flex-shrink-0 md:pt-4 md:mt-4 md:border-t">
+                <button type="submit" className="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors whitespace-nowrap min-h-[44px]">
                     <LogOut className="h-4 w-4" />
                     Sign Out
                 </button>

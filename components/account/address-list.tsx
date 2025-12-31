@@ -23,8 +23,8 @@ export function AddressList({ initialAddresses }: { initialAddresses: Address[] 
     return (
         <div className="space-y-6">
             {!isAdding && (
-                <Button onClick={() => setIsAdding(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> Add New Address
+                <Button onClick={() => setIsAdding(true)} className="h-11 text-base">
+                    <Plus className="mr-2 h-5 w-5" /> Add New Address
                 </Button>
             )}
 
@@ -32,15 +32,15 @@ export function AddressList({ initialAddresses }: { initialAddresses: Address[] 
                 <Card className="border-zinc-200">
                     <CardContent className="pt-6">
                         <div className="flex justify-between mb-4 items-center">
-                            <h3 className="font-semibold">New Address</h3>
-                            <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)}>Cancel</Button>
+                            <h3 className="font-semibold text-lg">New Address</h3>
+                            <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="h-11 px-4 text-base">Cancel</Button>
                         </div>
                         <AddressForm onSuccess={() => setIsAdding(false)} />
                     </CardContent>
                 </Card>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                 {initialAddresses.map(addr => (
                     <Card key={addr.id} className={addr.is_default ? "border-zinc-900 ring-1 ring-zinc-900" : ""}>
                         <CardContent className="pt-6 relative">
@@ -49,8 +49,8 @@ export function AddressList({ initialAddresses }: { initialAddresses: Address[] 
                                     <CheckCircle className="mr-1 h-3 w-3" /> Default
                                 </div>
                             )}
-                            <div className="font-semibold pr-20">{addr.full_name}</div>
-                            <div className="text-sm text-zinc-500 mt-2 space-y-0.5">
+                            <div className="font-semibold pr-20 text-lg">{addr.full_name}</div>
+                            <div className="text-base text-zinc-500 mt-2 space-y-0.5">
                                 <div>{addr.address_line1}</div>
                                 {addr.address_line2 && <div>{addr.address_line2}</div>}
                                 <div>{addr.city}, {addr.state} {addr.zip_code}</div>
@@ -59,12 +59,12 @@ export function AddressList({ initialAddresses }: { initialAddresses: Address[] 
 
                             <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-100">
                                 {!addr.is_default && (
-                                    <Button variant="ghost" size="sm" onClick={() => handleSetDefault(addr.id)} className="h-8 px-2">
+                                    <Button variant="ghost" size="sm" onClick={() => handleSetDefault(addr.id)} className="h-11 px-4 text-sm font-medium">
                                         Set Default
                                     </Button>
                                 )}
-                                <Button variant="ghost" size="sm" className="ml-auto h-8 px-2 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleDelete(addr.id)}>
-                                    <Trash2 className="h-4 w-4" />
+                                <Button variant="ghost" size="sm" className="ml-auto h-11 px-4 text-red-600 hover:bg-red-50 hover:text-red-700" onClick={() => handleDelete(addr.id)}>
+                                    <Trash2 className="h-5 w-5" />
                                     <span className="sr-only">Delete</span>
                                 </Button>
                             </div>
@@ -74,12 +74,12 @@ export function AddressList({ initialAddresses }: { initialAddresses: Address[] 
 
                 {initialAddresses.length === 0 && !isAdding && (
                     <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 rounded-lg">
-                        <div className="bg-zinc-50 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <MapPin className="h-6 w-6 text-zinc-400" />
+                        <div className="bg-zinc-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <MapPin className="h-8 w-8 text-zinc-400" />
                         </div>
-                        <h3 className="text-sm font-medium text-zinc-900">No addresses</h3>
-                        <p className="text-sm text-zinc-500 mb-4">Add an address for faster checkout.</p>
-                        <Button onClick={() => setIsAdding(true)} variant="outline">
+                        <h3 className="text-lg font-medium text-zinc-900">No addresses</h3>
+                        <p className="text-base text-zinc-500 mb-6">Add an address for faster checkout.</p>
+                        <Button onClick={() => setIsAdding(true)} variant="outline" className="h-11 text-base">
                             Add Address
                         </Button>
                     </div>

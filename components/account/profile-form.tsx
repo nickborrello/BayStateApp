@@ -48,21 +48,21 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     return (
         <div className="space-y-4">
             {message && (
-                <div className={`p-3 text-sm font-medium rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-destructive/10 text-destructive'
+                <div className={`p-4 text-base font-medium rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-destructive/10 text-destructive'
                     }`}>
                     {message.text}
                 </div>
             )}
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
                         control={form.control}
                         name="fullName"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Full Name</FormLabel>
+                                <FormLabel className="text-base">Full Name</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="Your Name" {...field} disabled={loading} />
+                                    <Input placeholder="Your Name" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -74,9 +74,9 @@ export function ProfileForm({ profile }: { profile: Profile }) {
                         name="phone"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
+                                <FormLabel className="text-base">Phone Number</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="(555) 123-4567" {...field} disabled={loading} />
+                                    <Input placeholder="(555) 123-4567" {...field} disabled={loading} className="h-12 text-base" />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -84,7 +84,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
                     />
 
                     <div className="pt-2">
-                        <Button type="submit" disabled={loading}>
+                        <Button type="submit" disabled={loading} className="w-full sm:w-auto h-12 text-base">
                             {loading ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>

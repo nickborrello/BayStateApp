@@ -6,11 +6,20 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }));
 
+// Mock useSearch
+jest.mock('@/components/storefront/search-provider', () => ({
+  useSearch: () => ({
+    openSearch: jest.fn(),
+    closeSearch: jest.fn(),
+    isOpen: false,
+  }),
+}));
+
 describe('MobileNav', () => {
   it('renders navigation links', () => {
     render(<MobileNav />);
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /search/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /browse/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /cart/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /account/i })).toBeInTheDocument();

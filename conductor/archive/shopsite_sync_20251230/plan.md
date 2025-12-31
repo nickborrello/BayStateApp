@@ -16,10 +16,10 @@
 - [x] Task: Develop `syncCustomers` Server Action (download + upsert)
 - [x] Task: Develop `syncOrders` Server Action (download + relationship mapping)
 - [x] Task: Implement batch processing for historical orders
-- [ ] Task: Conductor - User Manual Verification 'Customer & Order Synchronization' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Customer & Order Synchronization' (Protocol in workflow.md) [ebbca68]
 
 ## Phase 4: History & Diagnostics
 - [x] Task: Set up `migration_log` table for sync auditing
 - [x] Task: Implement history view and error diagnostics in the dashboard
 - [x] Task: Final polish of the "Sync Now" UI and credential management
-- [ ] Task: Conductor - User Manual Verification 'History & Diagnostics' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'History & Diagnostics' (Protocol in workflow.md) [ebbca68]

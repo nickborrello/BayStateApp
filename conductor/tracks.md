@@ -38,18 +38,22 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **Checkpoint:** `9e20346`
 - **Description:** Implement user authentication with RBAC, customer dashboards, and reorder features.
 
+### Database Security Hardening
+- **Location:** `archive/security_hardening_20251231/`
+- **Status:** ✅ Complete
+- **Description:** Enable RLS on public tables and fix security definer view.
+
+### ShopSite Data Sync
+- **Location:** `archive/shopsite_sync_20251230/`
+- **Status:** ✅ Complete
+- **Description:** Build a tool in the Admin Portal to sync data from ShopSite.
+
+### Mobile UX Optimization (Profile & Navigation)
+- **Location:** `archive/mobile_ux_optimization_20251231/`
+- **Status:** ✅ Complete
+- **Description:** Optimize mobile navigation, account sidebar, and forms for touch devices.
+
 ---
 
 ## Active Tracks
 
-### Database Security Hardening
-- **Location:** `tracks/security_hardening_20251231/`
-- **Status:** ✅ Complete
-- **Description:** Enable RLS on public tables and fix security definer view.
-
----
-
-### ShopSite Data Sync
-- **Location:** `tracks/shopsite_sync_20251230/`
-- **Status:** [~] In Progress
-- **Description:** Build a tool in the Admin Portal to sync data from ShopSite.

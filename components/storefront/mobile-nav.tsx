@@ -4,17 +4,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, Grid3X3, ShoppingCart, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSearch } from '@/components/storefront/search-provider';
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  action?: 'search';
 }
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/search', label: 'Search', icon: Search },
-  { href: '/categories', label: 'Browse', icon: Grid3X3 },
+  { href: '#', label: 'Search', icon: Search, action: 'search' },
+  { href: '/products', label: 'Browse', icon: Grid3X3 },
   { href: '/cart', label: 'Cart', icon: ShoppingCart },
   { href: '/account', label: 'Account', icon: User },
 ];
@@ -25,6 +27,7 @@ const navItems: NavItem[] = [
  */
 export function MobileNav() {
   const pathname = usePathname();
+  const { openSearch } = useSearch();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white md:hidden">
@@ -32,6 +35,23 @@ export function MobileNav() {
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
+
+          if (item.action === 'search') {
+            return (
+              <button
+                key={item.label}
+                onClick={openSearch}
+                className={cn(
+                  'flex h-14 w-14 flex-col items-center justify-center gap-1 rounded-lg transition-colors',
+                  'text-zinc-400 hover:text-zinc-600'
+                )}
+                aria-label={item.label}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </button>
+            );
+          }
 
           return (
             <Link

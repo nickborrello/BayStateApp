@@ -2,6 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginForm } from '@/components/auth/login-form';
 import { loginAction } from '@/lib/auth/actions';
 
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+    useSearchParams: () => new URLSearchParams(),
+}));
+
 // Mock the server action
 jest.mock('@/lib/auth/actions', () => ({
     loginAction: jest.fn(),
@@ -57,7 +62,7 @@ describe('LoginForm', () => {
             expect(loginAction).toHaveBeenCalledWith({
                 email: 'test@example.com',
                 password: 'password123'
-            });
+            }, undefined);
         });
     });
 

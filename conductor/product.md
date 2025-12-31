@@ -26,6 +26,7 @@ To transform Bay State Pet & Garden Supply into a high-performance, self-sustain
 ## Core Features: The Manager Portal
 - **No-Code Management:** A secure `/admin` dashboard that allows owners to add/edit products, update pricing, and toggle stock status without code.
 - **Campaign Controls:** Simple toggles to promote seasonal items (e.g., "Enable Spring Garden Mode") or update banner text, ensuring fresh content without breaking the site's layout.
+- **Legacy Data Sync:** A robust tool for migrating and synchronizing products, customers, and historical orders from the legacy ShopSite system, ensuring data continuity.
 - **Order Management:** A simplified interface to track and fulfill recent customer orders efficiently.
 - **Safety Rails:** Built-in constraints to prevent accidental layout breaks while granting full content control.
 

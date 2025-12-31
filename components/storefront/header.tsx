@@ -15,14 +15,14 @@ import { UserMenu } from '@/components/auth/user-menu';
  * StorefrontHeader - Main navigation header for the customer-facing storefront.
  * Features mobile-first design with 44px+ touch targets.
  */
-export function StorefrontHeader({ user }: { user: User | null }) {
+export function StorefrontHeader({ user, userRole }: { user: User | null, userRole: string | null }) {
   const { openSearch } = useSearch();
   const itemCount = useCartStore((state) => state.getItemCount());
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <header className="max-md:hidden sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
@@ -63,6 +63,14 @@ export function StorefrontHeader({ user }: { user: User | null }) {
             >
               About
             </Link>
+            {(userRole === 'admin' || userRole === 'staff') && (
+              <Link
+                href="/admin"
+                className="text-sm font-medium text-red-600 transition-colors hover:text-red-900"
+              >
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Action Buttons - 44px+ touch targets */}

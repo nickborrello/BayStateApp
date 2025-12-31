@@ -21,21 +21,7 @@ export async function loginAction(values: { email: string, password: string }, r
         redirect(redirectTo)
     }
 
-    // Otherwise, redirect based on role
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        const role = profile?.role || 'customer'
-        if (role === 'admin' || role === 'staff') {
-            redirect('/admin')
-        }
-    }
-
+    // Otherwise, redirect to account
     redirect('/account')
 }
 
@@ -126,5 +112,5 @@ export async function signOutAction() {
     const supabase = await createClient()
     await supabase.auth.signOut()
     revalidatePath('/', 'layout')
-    redirect('/login')
+    redirect('/')
 }

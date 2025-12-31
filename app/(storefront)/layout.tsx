@@ -8,6 +8,7 @@ import { getProducts, getActiveServices, getBrands } from '@/lib/data';
 import { getCampaignBanner } from '@/lib/settings';
 
 import { createClient } from '@/lib/supabase/server';
+import { getUserRole } from '@/lib/auth/roles';
 
 /**
  * StorefrontLayout - Layout wrapper for all customer-facing pages.
@@ -28,6 +29,8 @@ export default async function StorefrontLayout({
     getBrands(),
     getCampaignBanner(),
   ]);
+
+  const userRole = user ? await getUserRole(user.id) : null;
 
   // JSON-LD structured data for local business
   const jsonLd = {
@@ -81,7 +84,7 @@ export default async function StorefrontLayout({
             cycleInterval={campaignBanner.cycleInterval}
           />
         )}
-        <StorefrontHeader user={user} />
+        <StorefrontHeader user={user} userRole={userRole} />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <StorefrontFooter />
         <StickyCart />
