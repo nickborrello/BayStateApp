@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { LoginForm } from "@/components/auth/login-form"
+import { OAuthButtons } from "@/components/auth/oauth-buttons"
 
 export default function LoginPage() {
     return (
@@ -14,6 +15,9 @@ export default function LoginPage() {
                 </p>
             </div>
             <LoginForm />
+            <div className="mt-6">
+                <OAuthButtons />
+            </div>
         </div>
     )
 }

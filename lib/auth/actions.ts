@@ -54,5 +54,31 @@ export async function signupAction(values: { email: string, password: string, fu
     // redirect('/auth/verify-email') 
     // Wait, I haven't created /auth/verify-email page.
     // For now let's redirect to /login?message=check-email
+    // ... existing code ...
     redirect('/login?message=check-email')
+}
+
+export async function loginWithOAuth(provider: 'google' | 'apple' | 'facebook') {
+    const supabase = await createClient()
+
+    // Get site URL from env or default to generic localhost
+    // Note: Vercel sets VERCEL_URL but logic for correct proto needed. 
+    // Supabase also allows relative URLs in redirectTo if configured? 
+    // Safer to use production URL if set.
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+            redirectTo: `${siteUrl}/auth/callback`,
+        },
+    })
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    if (data.url) {
+        redirect(data.url)
+    }
 }
