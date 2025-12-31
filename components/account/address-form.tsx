@@ -20,7 +20,7 @@ const formSchema = z.object({
     state: z.string().min(2, "State is required"),
     zipCode: z.string().min(5, "Zip Code is required"),
     phone: z.string().optional(),
-    isDefault: z.boolean().default(false),
+    isDefault: z.boolean(),
 })
 
 export function AddressForm({ onSuccess }: { onSuccess: () => void }) {
