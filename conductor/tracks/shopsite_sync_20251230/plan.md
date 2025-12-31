@@ -6,16 +6,16 @@
 - [x] Task: Create settings UI in `app/admin/migration/page.tsx` for API credentials [0c915e0]
 - [x] Task: Conductor - User Manual Verification 'API Client & Infrastructure' (Protocol in workflow.md)
 
-## Phase 2: Product Synchronization
+## Phase 2: Product Synchronization [checkpoint: 040d29d]
 - [x] Task: Develop `syncProducts` Server Action using the API client [9c0c24b]
 - [x] Task: Implement transformation and upsert logic for products [9c0c24b]
 - [x] Task: Add progress feedback to the Admin UI
-- [~] Task: Conductor - User Manual Verification 'Product Synchronization' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Product Synchronization' (Protocol in workflow.md)
 
 ## Phase 3: Customer & Order Synchronization
-- [ ] Task: Develop `syncCustomers` Server Action (download + upsert)
-- [ ] Task: Develop `syncOrders` Server Action (download + relationship mapping)
-- [ ] Task: Implement batch processing for historical orders
+- [x] Task: Develop `syncCustomers` Server Action (download + upsert)
+- [x] Task: Develop `syncOrders` Server Action (download + relationship mapping)
+- [x] Task: Implement batch processing for historical orders
 - [ ] Task: Conductor - User Manual Verification 'Customer & Order Synchronization' (Protocol in workflow.md)
 
 ## Phase 4: History & Diagnostics
