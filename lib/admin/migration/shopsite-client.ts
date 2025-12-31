@@ -138,7 +138,12 @@ export class ShopSiteClient {
                 return [];
             }
 
-            const xmlText = await response.text();
+            // Handle encoding (ShopSite is strict ISO-8859-1)
+            const buffer = await response.arrayBuffer();
+            const decoder = new TextDecoder('iso-8859-1');
+            const xmlText = decoder.decode(buffer);
+
+            console.log(`[ShopSite] Downloaded orders XML: ${xmlText.length} chars`);
             return this.parseOrdersXml(xmlText);
         } catch (error) {
             console.error('Error fetching orders:', error);
@@ -294,6 +299,7 @@ export class ShopSiteClient {
             }
         }
 
+        console.log(`[ShopSite] Parsed ${orders.length} orders from XML`);
         return orders;
     }
 
