@@ -98,10 +98,27 @@ export async function testConnectionAction() {
  */
 export async function syncProductsAction(): Promise<SyncResult> {
     const startTime = Date.now();
+    const MAX_ERRORS = 50;
     const errors: MigrationError[] = [];
     let created = 0;
     let updated = 0;
     let failed = 0;
+
+    const addError = (record: string, message: string) => {
+        if (errors.length < MAX_ERRORS) {
+            errors.push({
+                record,
+                error: message,
+                timestamp: new Date().toISOString(),
+            });
+        } else if (errors.length === MAX_ERRORS) {
+            errors.push({
+                record: '...',
+                error: 'Too many errors, truncating log',
+                timestamp: new Date().toISOString(),
+            });
+        }
+    };
 
     const logId = await startMigrationLog('products');
 
@@ -190,11 +207,7 @@ export async function syncProductsAction(): Promise<SyncResult> {
                 });
 
             if (error) {
-                errors.push({
-                    record: shopSiteProduct.sku,
-                    error: error.message,
-                    timestamp: new Date().toISOString(),
-                });
+                addError(shopSiteProduct.sku, error.message);
                 failed++;
             } else {
                 if (isUpdate) {
@@ -205,11 +218,7 @@ export async function syncProductsAction(): Promise<SyncResult> {
                 }
             }
         } catch (err) {
-            errors.push({
-                record: shopSiteProduct.sku,
-                error: err instanceof Error ? err.message : 'Unknown error',
-                timestamp: new Date().toISOString(),
-            });
+            addError(shopSiteProduct.sku, err instanceof Error ? err.message : 'Unknown error');
             failed++;
         }
     }
@@ -245,10 +254,27 @@ export async function syncProductsFormAction(): Promise<void> {
  */
 export async function syncCustomersAction(): Promise<SyncResult> {
     const startTime = Date.now();
+    const MAX_ERRORS = 50;
     const errors: MigrationError[] = [];
     let created = 0;
     let updated = 0;
     let failed = 0;
+
+    const addError = (record: string, message: string) => {
+        if (errors.length < MAX_ERRORS) {
+            errors.push({
+                record,
+                error: message,
+                timestamp: new Date().toISOString(),
+            });
+        } else if (errors.length === MAX_ERRORS) {
+            errors.push({
+                record: '...',
+                error: 'Too many errors, truncating log',
+                timestamp: new Date().toISOString(),
+            });
+        }
+    };
 
     const logId = await startMigrationLog('customers');
 
@@ -326,11 +352,7 @@ export async function syncCustomersAction(): Promise<SyncResult> {
                 });
 
             if (error) {
-                errors.push({
-                    record: shopSiteCustomer.email,
-                    error: error.message,
-                    timestamp: new Date().toISOString(),
-                });
+                addError(shopSiteCustomer.email, error.message);
                 failed++;
             } else {
                 if (isUpdate) {
@@ -341,11 +363,7 @@ export async function syncCustomersAction(): Promise<SyncResult> {
                 }
             }
         } catch (err) {
-            errors.push({
-                record: shopSiteCustomer.email,
-                error: err instanceof Error ? err.message : 'Unknown error',
-                timestamp: new Date().toISOString(),
-            });
+            addError(shopSiteCustomer.email, err instanceof Error ? err.message : 'Unknown error');
             failed++;
         }
     }
@@ -380,10 +398,27 @@ export async function syncCustomersFormAction(): Promise<void> {
  */
 export async function syncOrdersAction(): Promise<SyncResult> {
     const startTime = Date.now();
+    const MAX_ERRORS = 50;
     const errors: MigrationError[] = [];
     let created = 0;
     let updated = 0;
     let failed = 0;
+
+    const addError = (record: string, message: string) => {
+        if (errors.length < MAX_ERRORS) {
+            errors.push({
+                record,
+                error: message,
+                timestamp: new Date().toISOString(),
+            });
+        } else if (errors.length === MAX_ERRORS) {
+            errors.push({
+                record: '...',
+                error: 'Too many errors, truncating log',
+                timestamp: new Date().toISOString(),
+            });
+        }
+    };
 
     const logId = await startMigrationLog('orders');
 
@@ -492,11 +527,7 @@ export async function syncOrdersAction(): Promise<SyncResult> {
                     .single();
 
                 if (orderError) {
-                    errors.push({
-                        record: shopSiteOrder.orderNumber,
-                        error: orderError.message,
-                        timestamp: new Date().toISOString(),
-                    });
+                    addError(shopSiteOrder.orderNumber, orderError.message);
                     failed++;
                     continue;
                 }
@@ -513,11 +544,7 @@ export async function syncOrdersAction(): Promise<SyncResult> {
                         .insert(orderItems);
 
                     if (itemsError) {
-                        errors.push({
-                            record: `${shopSiteOrder.orderNumber} items`,
-                            error: itemsError.message,
-                            timestamp: new Date().toISOString(),
-                        });
+                        addError(`${shopSiteOrder.orderNumber} items`, itemsError.message);
                         // Don't count as full failure, order was created
                     }
                 }
@@ -525,11 +552,7 @@ export async function syncOrdersAction(): Promise<SyncResult> {
                 created++;
                 existingOrderNumbers.add(shopSiteOrder.orderNumber);
             } catch (err) {
-                errors.push({
-                    record: shopSiteOrder.orderNumber,
-                    error: err instanceof Error ? err.message : 'Unknown error',
-                    timestamp: new Date().toISOString(),
-                });
+                addError(shopSiteOrder.orderNumber, err instanceof Error ? err.message : 'Unknown error');
                 failed++;
             }
         }
