@@ -41,39 +41,7 @@ The `conductor/` directory is the operational brain of this project. It contains
 | `product.md` | Product vision, features, and architectural principles |
 | `product-guidelines.md` | Tone, voice, and design language standards |
 | `tech-stack.md` | Technology choices and rationale |
-| `workflow.md` | Development workflow, TDD process, and quality gates |
-| `tracks.md` | Master index of all project tracks (completed and active) |
-| `tracks/` | Active track specifications and plans |
-| `archive/` | Completed track documentation |
 | `code_styleguides/` | Google-style coding standards for TS/JS/HTML/CSS |
-
----
-
-## Development Workflow
-
-### Guiding Principles
-1. **The Plan is the Source of Truth** – All work tracked in track `plan.md` files
-2. **Test-Driven Development** – Write failing tests first, then implement
-3. **High Code Coverage** – Target >80% coverage for all modules
-4. **User Experience First** – Every decision prioritizes UX
-5. **Non-Interactive & CI-Aware** – Use `CI=true` for watch-mode tools
-
-### Task Lifecycle (TDD Approach)
-```
-[ ] Select Task → [~] Mark In Progress → 🔴 Write Failing Tests → 
-🟢 Implement to Pass → ♻️ Refactor → ✅ Verify Coverage → 
-📝 Commit with Git Notes → [x] Mark Complete
-```
-
-### Quality Gates (Before Marking Complete)
-- [ ] All tests pass
-- [ ] Code coverage >80%
-- [ ] Follows code style guidelines
-- [ ] All public functions documented (JSDoc)
-- [ ] Type safety enforced
-- [ ] No linting errors
-- [ ] Works on mobile (44px+ touch targets)
-- [ ] No security vulnerabilities
 
 ---
 
@@ -101,52 +69,6 @@ The `conductor/` directory is the operational brain of this project. It contains
 | Functions, Methods, Variables | `lowerCamelCase` | `getProducts()`, `cartTotal` |
 | Global Constants | `CONSTANT_CASE` | `MAX_CART_ITEMS` |
 | CSS Classes | `kebab-case` | `.product-grid`, `.nav-item` |
-
----
-
-## Commit Message Format
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-[optional footer]
-```
-
-### Types
-| Type | Use For |
-|------|---------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `style` | Formatting, missing semicolons |
-| `refactor` | Code restructuring (no new features or fixes) |
-| `test` | Adding/updating tests |
-| `chore` | Maintenance tasks |
-
-**Examples:**
-```bash
-feat(storefront): Add fuzzy search to command bar
-fix(cart): Correct quantity update on mobile
-test(admin): Add unit tests for product form validation
-```
-
----
-
-## Track-Based Development
-
-### Understanding Tracks
-Tracks are focused development sprints targeting specific features. Each track has:
-- **Spec file** (`spec.md`) – Feature requirements and acceptance criteria
-- **Plan file** (`plan.md`) – Task breakdown with checkboxes and commit SHAs
-- **Checkpoint commits** – Verified, stable points with attached git notes
-
-### Current Track Status
-See `conductor/tracks.md` for the master list.
-
-**Active Track:** PWA & Polish
-- Location: `conductor/tracks/pwa_polish_20251230/`
-- Focus: PWA capabilities, brand management, static pages, final polish
 
 ---
 
@@ -181,29 +103,6 @@ npm run lint         # Run linter
 CI=true npm test     # Run tests (single execution)
 ```
 
-### Git Notes (for task auditing)
-```bash
-# Attach note to commit
-git notes add -m "<note content>" <commit_hash>
-
-# View notes
-git notes show <commit_hash>
-```
-
----
-
-## Definition of Done
-
-A task is **complete** when:
-1. ✅ All code implemented to specification
-2. ✅ Unit tests written and passing
-3. ✅ Code coverage meets requirements (>80%)
-4. ✅ Documentation complete
-5. ✅ Passes all linting/static analysis
-6. ✅ Works on mobile
-7. ✅ Implementation notes in `plan.md`
-8. ✅ Committed with proper message format
-9. ✅ Git note with task summary attached
 
 ---
 
@@ -222,6 +121,4 @@ A task is **complete** when:
 - **Product Vision:** `conductor/product.md`
 - **Design Guidelines:** `conductor/product-guidelines.md`
 - **Tech Stack:** `conductor/tech-stack.md`
-- **Full Workflow:** `conductor/workflow.md`
-- **Track Index:** `conductor/tracks.md`
 - **Code Styles:** `conductor/code_styleguides/`

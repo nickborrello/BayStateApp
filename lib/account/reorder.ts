@@ -23,16 +23,19 @@ export async function getFrequentlyBoughtProducts(limit = 6): Promise<FrequentPr
 
     // Query: Get all product items in user's orders
     const { data, error } = await supabase
-        .from('order_items')
+        .from('orders')
         .select(`
-            item_id,
-            item_name,
-            item_slug,
-            unit_price,
-            orders!inner (user_id)
+            user_id,
+            order_items!inner (
+                item_id,
+                item_name,
+                item_slug,
+                unit_price,
+                item_type
+            )
         `)
-        .eq('orders.user_id', user.id)
-        .eq('item_type', 'product')
+        .eq('user_id', user.id)
+        .eq('order_items.item_type', 'product')
 
     if (error) {
         console.error('Error fetching order history:', error)
@@ -41,7 +44,7 @@ export async function getFrequentlyBoughtProducts(limit = 6): Promise<FrequentPr
 
     if (!data || data.length === 0) return []
 
-    // Aggregate: Count occurrences per product
+    // Aggregate: Count occurrences per product (flatten items from all orders)
     const productCounts = new Map<string, {
         id: string;
         name: string;
@@ -50,19 +53,22 @@ export async function getFrequentlyBoughtProducts(limit = 6): Promise<FrequentPr
         count: number
     }>()
 
-    for (const item of data) {
-        const itemId = item.item_id
-        const existing = productCounts.get(itemId)
-        if (existing) {
-            existing.count++
-        } else {
-            productCounts.set(itemId, {
-                id: itemId,
-                name: item.item_name,
-                slug: item.item_slug,
-                price: parseFloat(item.unit_price as any),
-                count: 1
-            })
+    for (const order of data) {
+        const items = order.order_items as any[]
+        for (const item of items) {
+            const itemId = item.item_id
+            const existing = productCounts.get(itemId)
+            if (existing) {
+                existing.count++
+            } else {
+                productCounts.set(itemId, {
+                    id: itemId,
+                    name: item.item_name,
+                    slug: item.item_slug,
+                    price: parseFloat(item.unit_price as any),
+                    count: 1
+                })
+            }
         }
     }
 
