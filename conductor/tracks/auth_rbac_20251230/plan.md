@@ -51,9 +51,9 @@
 - [x] Task: Implement profile editing (name, phone, email preferences) dee4a58
 
 ### 3.2 Address Management
-- [ ] Task: Create `addresses` table migration with primary flag
-- [ ] Task: Write failing tests for Address CRUD operations
-- [ ] Task: Build Address management UI in `/account/addresses`
+- [x] Task: Create `addresses` table migration with primary flag f8c86c0
+- [x] Task: Write failing tests for Address CRUD operations f8c86c0
+- [x] Task: Build Address management UI in `/account/addresses` f8c86c0
 
 ### 3.3 Wishlist System
 - [ ] Task: Create `wishlists` table migration (user_id, product_id)
