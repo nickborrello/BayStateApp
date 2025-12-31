@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Database, RefreshCw, CheckCircle, AlertCircle, History, Clock } from 'lucide-react';
 import { getCredentials, saveCredentialsAction, syncProductsFormAction, syncCustomersFormAction, syncOrdersFormAction } from './actions';
 import { getRecentMigrationLogs } from '@/lib/admin/migration/history';
+import { DownloadXmlButtons } from '@/components/admin/migration/download-xml-buttons';
 
 export default async function AdminMigrationPage() {
     const credentials = await getCredentials();
@@ -153,6 +154,11 @@ export default async function AdminMigrationPage() {
                                     </form>
                                 </div>
                             </div>
+
+                            {/* Download XML Section */}
+                            <div className="pt-4 border-t">
+                                <DownloadXmlButtons />
+                            </div>
                         </CardContent>
                     </Card>
                 )}
@@ -198,8 +204,8 @@ export default async function AdminMigrationPage() {
                                             <td className="px-4 py-3 font-medium capitalize">{log.sync_type}</td>
                                             <td className="px-4 py-3">
                                                 <Badge variant={
-                                                    log.status === 'completed' ? 'default' : 
-                                                    log.status === 'running' ? 'secondary' : 'destructive'
+                                                    log.status === 'completed' ? 'default' :
+                                                        log.status === 'running' ? 'secondary' : 'destructive'
                                                 }>
                                                     {log.status}
                                                 </Badge>
