@@ -121,8 +121,10 @@ export class ShopSiteClient {
      */
     async fetchOrders(): Promise<ShopSiteOrder[]> {
         try {
+            // Revert to using db_xml.cgi for orders as well
+            // Based on docs, db_xml.cgi handles order downloads too
             const response = await fetch(
-                this.buildUrl('format=xml', 'order_download.cgi'),
+                this.buildUrl('action=download&type=orders', 'db_xml.cgi'),
                 {
                     method: 'GET',
                     headers: {
