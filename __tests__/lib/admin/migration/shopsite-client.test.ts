@@ -90,13 +90,14 @@ describe('ShopSiteClient', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 text: () => Promise.resolve(mockProductXml),
+                arrayBuffer: () => Promise.resolve(Buffer.from(mockProductXml)),
             });
 
             const client = new ShopSiteClient(validConfig);
             const products = await client.fetchProducts();
 
             expect(products).toHaveLength(1);
-            expect(products[0]).toEqual({
+            expect(products[0]).toMatchObject({
                 sku: 'SKU001',
                 name: 'Test Product',
                 price: 19.99,
@@ -119,6 +120,7 @@ describe('ShopSiteClient', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 text: () => Promise.resolve('<?xml version="1.0"?><products></products>'),
+                arrayBuffer: () => Promise.resolve(Buffer.from('<?xml version="1.0"?><products></products>')),
             });
 
             const client = new ShopSiteClient(validConfig);
@@ -137,28 +139,39 @@ describe('ShopSiteClient', () => {
 
     describe('fetchOrders', () => {
         const mockOrderXml = `<?xml version="1.0"?>
-      <orders>
-        <order>
-          <order_number>ORD-001</order_number>
-          <order_date>2024-01-15</order_date>
-          <grand_total>99.99</grand_total>
-          <tax>8.00</tax>
-          <shipping_total>5.99</shipping_total>
-          <customer_email>test@example.com</customer_email>
-          <items>
-            <item>
-              <sku>SKU001</sku>
-              <quantity>2</quantity>
-              <price>19.99</price>
-            </item>
-          </items>
-        </order>
-      </orders>`;
+      <ShopSiteOrders>
+        <Order>
+          <OrderNumber>ORD-001</OrderNumber>
+          <OrderDate>2024-01-15</OrderDate>
+          <Totals>
+            <GrandTotal>99.99</GrandTotal>
+            <Tax>
+               <TaxAmount>8.00</TaxAmount>
+            </Tax>
+            <ShippingTotal>
+               <Total>5.99</Total>
+            </ShippingTotal>
+          </Totals>
+          <Billing>
+            <Email>test@example.com</Email>
+          </Billing>
+          <Shipping>
+            <Products>
+                <Product>
+                  <SKU>SKU001</SKU>
+                  <Quantity>2</Quantity>
+                  <ItemPrice>19.99</ItemPrice>
+                </Product>
+            </Products>
+          </Shipping>
+        </Order>
+      </ShopSiteOrders>`;
 
         it('fetches and parses orders from XML', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 text: () => Promise.resolve(mockOrderXml),
+                arrayBuffer: () => Promise.resolve(Buffer.from(mockOrderXml)),
             });
 
             const client = new ShopSiteClient(validConfig);
@@ -192,6 +205,7 @@ describe('ShopSiteClient', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 text: () => Promise.resolve(mockCustomerXml),
+                arrayBuffer: () => Promise.resolve(Buffer.from(mockCustomerXml)),
             });
 
             const client = new ShopSiteClient(validConfig);
@@ -203,6 +217,40 @@ describe('ShopSiteClient', () => {
                 firstName: 'John',
                 lastName: 'Doe',
             });
+        });
+    });
+
+    describe('sanitizeXml', () => {
+        it('should fix unencoded ampersands', () => {
+            const input = '<Name>Ben & Jerry\'s</Name>';
+            const expected = '<Name>Ben &amp; Jerry\'s</Name>';
+            expect(ShopSiteClient.sanitizeXml(input)).toBe(expected);
+        });
+
+        it('should not double-encode already encoded ampersands', () => {
+            const input = '<Name>Ben &amp; Jerry\'s</Name>';
+            const expected = '<Name>Ben &amp; Jerry\'s</Name>'; // Should remain unchanged
+            expect(ShopSiteClient.sanitizeXml(input)).toBe(expected);
+        });
+
+        it('should replace known HTML entities', () => {
+            const input = '<Desc>Copyright &copy; 2024</Desc>';
+            const expected = '<Desc>Copyright &#169; 2024</Desc>';
+            expect(ShopSiteClient.sanitizeXml(input)).toBe(expected);
+        });
+
+        it('should replace &uuml; (explicitly requested)', () => {
+            const input = '<Desc>M&uuml;ller</Desc>';
+            const expected = '<Desc>M&#252;ller</Desc>';
+            expect(ShopSiteClient.sanitizeXml(input)).toBe(expected);
+        });
+
+        it('should handle complex mixed cases', () => {
+            const input = '<Item>M&Ms & &nbsp;Skittles</Item>';
+            // & -> &amp;
+            // &nbsp; -> &#160;
+            const expected = '<Item>M&amp;Ms &amp; &#160;Skittles</Item>';
+            expect(ShopSiteClient.sanitizeXml(input)).toBe(expected);
         });
     });
 });

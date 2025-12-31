@@ -78,9 +78,10 @@ export class ShopSiteClient {
 
         // 1. Fix Unencoded Ampersands
         // Matches '&' that is NOT followed by an entity pattern (e.g., &amp;, &#123;)
+        // Using the exact regex from the guide: re.sub(r"&(?![a-zA-Z0-9#]+;)", "&amp;", raw_content)
         sanitized = sanitized.replace(/&(?![a-zA-Z0-9#]+;)/g, '&amp;');
 
-        // 2. Replace common HTML entities that break XML parsers
+        // 2. Replace common HTML entities that break XML parsers, plus others from the guide
         const htmlEntities: Record<string, string> = {
             '&nbsp;': '&#160;',
             '&copy;': '&#169;',
@@ -96,9 +97,11 @@ export class ShopSiteClient {
             '&rdquo;': '&#8221;',
             '&middot;': '&#183;',
             '&deg;': '&#176;',
+            '&uuml;': '&#252;', // Explicitly mentioned in guide
         };
 
         for (const [entity, replacement] of Object.entries(htmlEntities)) {
+            // Global replacement
             sanitized = sanitized.split(entity).join(replacement);
         }
 
@@ -142,8 +145,9 @@ export class ShopSiteClient {
      */
     async fetchProducts(): Promise<ShopSiteProduct[]> {
         try {
+            // Added version=14.0 as per legacy guide
             const response = await fetch(
-                this.buildUrl('clientApp=1&dbname=products', 'db_xml.cgi'),
+                this.buildUrl('clientApp=1&dbname=products&version=14.0', 'db_xml.cgi'),
                 {
                     method: 'GET',
                     headers: {
@@ -158,7 +162,11 @@ export class ShopSiteClient {
                 return [];
             }
 
-            const xmlText = ShopSiteClient.sanitizeXml(await response.text());
+            // Decode as utf-8 with replacement as per guide
+            const buffer = await response.arrayBuffer();
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+            const xmlText = ShopSiteClient.sanitizeXml(decoder.decode(buffer));
+
             return this.parseProductsXml(xmlText);
         } catch (error) {
             console.error('Error fetching products:', error);
@@ -199,10 +207,21 @@ export class ShopSiteClient {
                 return [];
             }
 
-            // Handle encoding (ShopSite is strict ISO-8859-1)
+            // Handle encoding (Switching to utf-8 per guide)
             const buffer = await response.arrayBuffer();
-            const decoder = new TextDecoder('iso-8859-1');
-            const xmlText = ShopSiteClient.sanitizeXml(decoder.decode(buffer));
+            const decoder = new TextDecoder('utf-8', { fatal: false });
+            let xmlText = decoder.decode(buffer);
+
+            // Strip "Content-type: ..." header if present in body
+            if (xmlText.startsWith('Content-type:')) {
+                const headerEnd = xmlText.indexOf('\n\n');
+                if (headerEnd !== -1) {
+                    xmlText = xmlText.substring(headerEnd + 2);
+                }
+            }
+
+            // Sanitize XML
+            xmlText = ShopSiteClient.sanitizeXml(xmlText);
 
             console.log(`[ShopSite] Downloaded orders XML: ${xmlText.length} chars`);
             return this.parseOrdersXml(xmlText);

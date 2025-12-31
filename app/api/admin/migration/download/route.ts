@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     let queryString = '';
     switch (type) {
         case 'products':
-            queryString = 'clientApp=1&dbname=products';
+            queryString = 'clientApp=1&dbname=products&version=14.0';
             break;
         case 'orders':
             // XML Order Download API
@@ -88,9 +88,9 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // ShopSite often returns ISO-8859-1
+        // Decode as utf-8 with replacement (ShopSite often returns ISO-8859-1 but we want to force valid UTF-8 for the app)
         const buffer = await response.arrayBuffer();
-        const decoder = new TextDecoder('iso-8859-1');
+        const decoder = new TextDecoder('utf-8', { fatal: false });
         let xmlContent = decoder.decode(buffer);
 
         // For orders, ShopSite often prepends a custom Content-type header in the body
