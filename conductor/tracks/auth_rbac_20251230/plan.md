@@ -29,9 +29,9 @@
 - [x] Task: Create `/login` and `/signup` pages 95d00d4
 
 ### 2.2 OAuth Integration
-- [ ] Task: Implement Google, Apple, and Facebook OAuth buttons
-- [ ] Task: Configure callback routes for social authentication
-- [ ] Task: Verify account linking (checking if email exists)
+- [x] Task: Implement Google, Apple, and Facebook OAuth buttons b54932e
+- [x] Task: Configure callback routes for social authentication b54932e
+- [x] Task: Verify account linking (checking if email exists) b54932e
 
 ### 2.3 Password Reset & Session Management
 - [ ] Task: Implement "Forgot Password" flow with email reset link
