@@ -10,6 +10,7 @@ import {
   Database,
   Tag,
   Users,
+  Palette,
 } from 'lucide-react';
 
 interface NavItem {
@@ -38,6 +39,12 @@ const navSections: NavSection[] = [
       { href: '/admin/brands', label: 'Brands', icon: <Tag className="h-5 w-5" /> },
       { href: '/admin/services', label: 'Services', icon: <Wrench className="h-5 w-5" /> },
       { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart className="h-5 w-5" /> },
+    ],
+  },
+  {
+    title: 'Design',
+    items: [
+      { href: '/admin/design', label: 'Site Design', icon: <Palette className="h-5 w-5" /> },
     ],
   },
   {

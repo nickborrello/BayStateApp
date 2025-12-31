@@ -1,11 +1,20 @@
 import { createClient } from '@/lib/supabase/server';
 
+export interface BannerMessage {
+  text: string;
+  linkText?: string;
+  linkHref?: string;
+}
+
 export interface CampaignBannerSettings {
   enabled: boolean;
-  message: string;
+  messages: BannerMessage[];
+  variant: 'info' | 'promo' | 'seasonal';
+  cycleInterval: number; // Milliseconds between transitions
+  // Legacy field for backwards compatibility
+  message?: string;
   link_text?: string;
   link_href?: string;
-  variant: 'info' | 'promo' | 'seasonal';
 }
 
 export interface SiteSettings {
@@ -15,10 +24,42 @@ export interface SiteSettings {
 const defaultSettings: SiteSettings = {
   campaign_banner: {
     enabled: false,
-    message: '',
+    messages: [],
     variant: 'info',
+    cycleInterval: 5000,
   },
 };
+
+/**
+ * Normalizes campaign banner settings for backwards compatibility.
+ * Converts legacy single-message format to new array format.
+ */
+function normalizeCampaignBanner(settings: CampaignBannerSettings): CampaignBannerSettings {
+  // Ensure default values are present
+  const normalized: CampaignBannerSettings = {
+    ...defaultSettings.campaign_banner,
+    ...settings,
+  };
+
+  // If messages array exists and has items, use it
+  if (normalized.messages && normalized.messages.length > 0) {
+    return normalized;
+  }
+
+  // Convert legacy single-message format to array format
+  if (normalized.message) {
+    return {
+      ...normalized,
+      messages: [{
+        text: normalized.message,
+        linkText: normalized.link_text,
+        linkHref: normalized.link_href,
+      }],
+    };
+  }
+
+  return normalized;
+}
 
 /**
  * Fetches a site setting by key.
@@ -51,10 +92,13 @@ export async function updateSetting<K extends keyof SiteSettings>(
   const supabase = await createClient();
   const { error } = await supabase
     .from('site_settings')
-    .upsert({ key, value, updated_at: new Date().toISOString() });
+    .upsert(
+      { key, value, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
 
   if (error) {
-    console.error(`Error updating setting ${key}:`, error);
+    console.error(`Error updating setting ${key}:`, error.message, error.details, error.hint);
     return false;
   }
 
@@ -65,7 +109,8 @@ export async function updateSetting<K extends keyof SiteSettings>(
  * Fetches the campaign banner settings.
  */
 export async function getCampaignBanner(): Promise<CampaignBannerSettings> {
-  return getSetting('campaign_banner');
+  const settings = await getSetting('campaign_banner');
+  return normalizeCampaignBanner(settings);
 }
 
 /**

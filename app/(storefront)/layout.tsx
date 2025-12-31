@@ -74,12 +74,11 @@ export default async function StorefrontLayout({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <div className="flex min-h-screen flex-col w-full">
-        {campaignBanner.enabled && (
+        {campaignBanner.enabled && campaignBanner.messages.length > 0 && (
           <CampaignBanner
-            message={campaignBanner.message}
-            linkText={campaignBanner.link_text}
-            linkHref={campaignBanner.link_href}
+            messages={campaignBanner.messages}
             variant={campaignBanner.variant}
+            cycleInterval={campaignBanner.cycleInterval}
           />
         )}
         <StorefrontHeader user={user} />
