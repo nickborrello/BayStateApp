@@ -33,6 +33,6 @@ describe('CampaignBanner', () => {
     const { container } = render(
       <CampaignBanner message="Seasonal" variant="seasonal" />
     );
-    expect(container.firstChild).toHaveClass('bg-green-600');
+    expect(container.firstChild).toHaveClass('bg-primary');
   });
 });

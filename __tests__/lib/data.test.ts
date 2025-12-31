@@ -19,6 +19,7 @@ describe('Data Fetching Functions', () => {
   const mockOrder = jest.fn();
   const mockLimit = jest.fn();
   const mockRange = jest.fn();
+  const mockIn = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -26,9 +27,10 @@ describe('Data Fetching Functions', () => {
     // Chain mock
     mockLimit.mockReturnThis();
     mockRange.mockReturnThis();
+    mockIn.mockResolvedValue({ data: [], error: null });
     mockOrder.mockReturnValue({ limit: mockLimit, range: mockRange, data: [], error: null });
     mockEq.mockReturnValue({ eq: mockEq, order: mockOrder, data: [], error: null });
-    mockSelect.mockReturnValue({ eq: mockEq, order: mockOrder, data: [], error: null, count: 0 });
+    mockSelect.mockReturnValue({ eq: mockEq, order: mockOrder, in: mockIn, data: [], error: null, count: 0 });
     mockFrom.mockReturnValue({ select: mockSelect });
 
     mockCreateClient.mockResolvedValue({
@@ -42,8 +44,8 @@ describe('Data Fetching Functions', () => {
 
       await getFeaturedProducts();
 
-      expect(mockFrom).toHaveBeenCalledWith('products');
-      expect(mockSelect).toHaveBeenCalledWith('*, brand:brands(*)');
+      expect(mockFrom).toHaveBeenCalledWith('products_published');
+      expect(mockSelect).toHaveBeenCalledWith('*');
       expect(mockEq).toHaveBeenCalledWith('is_featured', true);
     });
 
@@ -107,7 +109,7 @@ describe('Data Fetching Functions', () => {
 
       await getProducts({ brandId: 'test-id', stockStatus: 'in_stock', limit: 10, offset: 0 });
 
-      expect(mockFrom).toHaveBeenCalledWith('products');
+      expect(mockFrom).toHaveBeenCalledWith('products_published');
       expect(mockEq).toHaveBeenCalledWith('brand_id', 'test-id');
     });
 
