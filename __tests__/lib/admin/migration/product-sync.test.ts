@@ -25,7 +25,8 @@ describe('Product Sync Utilities', () => {
                 description: 'A test product description',
                 stock_status: 'in_stock',
                 images: ['https://example.com/image.jpg'],
-                legacy_shopsite_id: 'SKU-001',
+                upc: 'SKU-001',
+                shopsite_data: { raw_xml: {} },
             });
         });
 

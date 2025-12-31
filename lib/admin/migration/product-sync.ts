@@ -37,7 +37,7 @@ export function transformShopSiteProduct(product: ShopSiteProduct): any {
         description: product.description,
         stock_status: product.quantityOnHand > 0 ? 'in_stock' : 'out_of_stock',
         images: product.imageUrl ? [product.imageUrl] : [],
-        legacy_shopsite_id: product.sku,
+        upc: product.sku,
         weight: product.weight,
         taxable: product.taxable ?? true,
         shopsite_product_type: product.productType,
