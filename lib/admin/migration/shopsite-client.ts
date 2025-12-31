@@ -316,7 +316,8 @@ export class ShopSiteClient {
             const endIdx = xmlText.indexOf(endTag, startIdx);
             if (endIdx === -1) break;
 
-            const orderXml = xmlText.substring(startIdx, endIdx + endTag.length);
+            // Force a string copy to avoid retaining reference to the huge parent string
+            const orderXml = (' ' + xmlText.substring(startIdx, endIdx + endTag.length)).slice(1);
             searchPos = endIdx + endTag.length;
 
             // Extract order-level fields (PascalCase per DTD)

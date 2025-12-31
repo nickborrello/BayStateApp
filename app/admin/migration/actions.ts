@@ -523,11 +523,17 @@ async function processOrders(shopSiteOrders: any[], logId?: string): Promise<Syn
         };
     }
 
+    console.log(`[Sync] processOrders starting for ${shopSiteOrders.length} orders...`);
     const supabase = await createClient();
 
     // Build lookup maps for profiles and products
-    const { data: profiles } = await supabase.from('profiles').select('id, email');
-    const { data: products } = await supabase.from('products').select('id, sku');
+    console.log('[Sync] Fetching profiles...');
+    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id, email');
+    if (profilesError) console.error('[Sync] Error fetching profiles:', profilesError);
+
+    console.log('[Sync] Fetching products...');
+    const { data: products, error: productsError } = await supabase.from('products').select('id, sku');
+    if (productsError) console.error('[Sync] Error fetching products:', productsError);
 
     const profileIdMap = new Map<string, string>();
     (profiles || []).forEach((p: any) => {
@@ -539,9 +545,12 @@ async function processOrders(shopSiteOrders: any[], logId?: string): Promise<Syn
         if (p.sku) productIdMap.set(p.sku, p.id);
     });
 
-    const { data: existingOrders } = await supabase
+    console.log('[Sync] Fetching existing orders...');
+    const { data: existingOrders, error: existingOrdersError } = await supabase
         .from('orders')
         .select('legacy_order_number');
+
+    if (existingOrdersError) console.error('[Sync] Error fetching existing orders:', existingOrdersError);
 
     const existingOrderNumbers = new Set(
         (existingOrders || [])
@@ -549,9 +558,14 @@ async function processOrders(shopSiteOrders: any[], logId?: string): Promise<Syn
             .filter(Boolean)
     );
 
-    const orderBatches = batchOrders(shopSiteOrders, 25);
+    const orderBatches = batchOrders(shopSiteOrders, 10);
+    console.log(`[Sync] Starting processing of ${orderBatches.length} batches...`);
 
+    let batchCount = 0;
     for (const batch of orderBatches) {
+        batchCount++;
+        if (batchCount % 10 === 0) console.log(`[Sync] Processing batch ${batchCount}/${orderBatches.length}`);
+
         for (const shopSiteOrder of batch) {
             try {
                 if (existingOrderNumbers.has(shopSiteOrder.orderNumber)) {
