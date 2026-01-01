@@ -64,6 +64,7 @@ class GitHubAppClient {
     private octokit: Octokit | null = null;
     private readonly owner: string;
     private readonly repo: string;
+    private readonly scraperRepo: string;
     private readonly installationId: number;
 
     constructor() {
@@ -72,6 +73,7 @@ class GitHubAppClient {
         const installationId = process.env.GITHUB_APP_INSTALLATION_ID;
         const owner = process.env.GITHUB_OWNER;
         const repo = process.env.GITHUB_REPO;
+        const scraperRepo = process.env.GITHUB_SCRAPER_REPO;
 
         if (!appId || !privateKey || !installationId || !owner || !repo) {
             throw new Error(
@@ -95,6 +97,7 @@ class GitHubAppClient {
 
         this.owner = owner;
         this.repo = repo;
+        this.scraperRepo = scraperRepo || repo; // Default to main repo if not set
         this.installationId = parseInt(installationId, 10);
     }
 
@@ -119,7 +122,7 @@ class GitHubAppClient {
         try {
             const response = await octokit.rest.actions.listSelfHostedRunnersForRepo({
                 owner: this.owner,
-                repo: this.repo,
+                repo: this.scraperRepo,
             });
 
             return {
@@ -181,7 +184,7 @@ class GitHubAppClient {
         const octokit = await this.getOctokit();
         await octokit.rest.actions.createWorkflowDispatch({
             owner: this.owner,
-            repo: this.repo,
+            repo: this.scraperRepo,
             workflow_id: 'scrape.yml',
             ref: 'main',
             inputs: {
@@ -201,7 +204,7 @@ class GitHubAppClient {
         const octokit = await this.getOctokit();
         const response = await octokit.rest.actions.getWorkflowRun({
             owner: this.owner,
-            repo: this.repo,
+            repo: this.scraperRepo,
             run_id: runId,
         });
 
@@ -223,7 +226,7 @@ class GitHubAppClient {
         const octokit = await this.getOctokit();
         const response = await octokit.rest.actions.listWorkflowRuns({
             owner: this.owner,
-            repo: this.repo,
+            repo: this.scraperRepo,
             workflow_id: 'scrape.yml',
             per_page: limit,
         });
