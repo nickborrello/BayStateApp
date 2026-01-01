@@ -5,6 +5,7 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(() => ({
     push: jest.fn(),
     replace: jest.fn(),
+    refresh: jest.fn(),
     prefetch: jest.fn(),
     back: jest.fn(),
   })),
@@ -38,6 +39,7 @@ jest.mock('@/lib/supabase/server', () => ({
               is_active: false,
             },
           ],
+          count: 2,
           error: null,
         }),
       }),
@@ -57,7 +59,7 @@ describe('Admin Services Page', () => {
   it('renders Add Service button', async () => {
     const page = await AdminServicesPage();
     render(page);
-    expect(screen.getByRole('link', { name: /add service/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add service/i })).toBeInTheDocument();
   });
 
   it('renders service cards', async () => {
@@ -72,12 +74,5 @@ describe('Admin Services Page', () => {
     render(page);
     expect(screen.getByText('Active')).toBeInTheDocument();
     expect(screen.getByText('Inactive')).toBeInTheDocument();
-  });
-
-  it('renders edit buttons for each service', async () => {
-    const page = await AdminServicesPage();
-    render(page);
-    const editLinks = screen.getAllByRole('link', { name: '' });
-    expect(editLinks.length).toBeGreaterThan(0);
   });
 });

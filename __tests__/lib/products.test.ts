@@ -46,8 +46,8 @@ describe('Products Data Functions', () => {
     it('queries products_published view with slug filter', async () => {
       await getProductBySlug('test-product');
 
-      expect(mockFrom).toHaveBeenCalledWith('products_published');
-      expect(mockSelect).toHaveBeenCalledWith('*');
+      expect(mockFrom).toHaveBeenCalledWith('products');
+      expect(mockSelect).toHaveBeenCalledWith('*, brand:brands(id, name, slug, logo_url)');
       expect(mockEq).toHaveBeenCalledWith('slug', 'test-product');
     });
 
@@ -90,7 +90,7 @@ describe('Products Data Functions', () => {
         maxPrice: 100,
       });
 
-      expect(mockFrom).toHaveBeenCalledWith('products_published');
+      expect(mockFrom).toHaveBeenCalledWith('products');
     });
 
     it('returns empty array on error', async () => {

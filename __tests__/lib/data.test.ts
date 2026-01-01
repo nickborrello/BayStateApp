@@ -62,8 +62,8 @@ describe('Data Fetching Functions', () => {
       // getFeaturedProducts now delegates to getFilteredProducts which uses range()
       await getFeaturedProducts();
 
-      expect(mockFrom).toHaveBeenCalledWith('products_published');
-      expect(mockSelect).toHaveBeenCalledWith('*', { count: 'exact' });
+      expect(mockFrom).toHaveBeenCalledWith('products');
+      expect(mockSelect).toHaveBeenCalledWith('*, brand:brands(id, name, slug, logo_url)', { count: 'exact' });
       expect(mockEq).toHaveBeenCalledWith('is_featured', true);
       expect(mockEq).toHaveBeenCalledWith('stock_status', 'in_stock');
     });
@@ -126,7 +126,7 @@ describe('Data Fetching Functions', () => {
     it('queries products_published view with optional filters', async () => {
       await getProducts({ brandId: 'test-id', stockStatus: 'in_stock', limit: 10, offset: 0 });
 
-      expect(mockFrom).toHaveBeenCalledWith('products_published');
+      expect(mockFrom).toHaveBeenCalledWith('products');
       expect(mockEq).toHaveBeenCalledWith('brand_id', 'test-id');
       expect(mockEq).toHaveBeenCalledWith('stock_status', 'in_stock');
     });

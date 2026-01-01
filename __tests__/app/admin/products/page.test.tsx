@@ -1,6 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import AdminProductsPage from '@/app/admin/products/page';
 
+// Mock next/navigation hooks used by AdminProductsClient
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn(), refresh: jest.fn(), prefetch: jest.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '/admin/products',
+}));
+
 // Mock the server component data fetching
 // In Next.js App Router, pages are async components.
 // We can test them by awaiting them or mocking the data source.

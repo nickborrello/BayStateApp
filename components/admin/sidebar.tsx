@@ -7,13 +7,14 @@ import {
   Settings,
   PackagePlus,
   BarChart3,
-  Database,
   Tag,
   Users,
   Palette,
   RefreshCw,
   LogOut,
   FolderTree,
+  UserCircle,
+  Percent,
 } from 'lucide-react';
 
 interface NavItem {
@@ -36,32 +37,33 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Store',
+    title: 'Catalog',
     items: [
       { href: '/admin/products', label: 'Products', icon: <Package className="h-5 w-5" /> },
       { href: '/admin/categories', label: 'Categories', icon: <FolderTree className="h-5 w-5" /> },
       { href: '/admin/brands', label: 'Brands', icon: <Tag className="h-5 w-5" /> },
       { href: '/admin/services', label: 'Services', icon: <Wrench className="h-5 w-5" /> },
+      { href: '/admin/pipeline', label: 'New Products', icon: <PackagePlus className="h-5 w-5" /> },
+    ],
+  },
+  {
+    title: 'Sales',
+    items: [
       { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart className="h-5 w-5" /> },
+      { href: '/admin/customers', label: 'Customers', icon: <UserCircle className="h-5 w-5" /> },
+      { href: '/admin/promotions', label: 'Promotions', icon: <Percent className="h-5 w-5" /> },
     ],
   },
   {
-    title: 'Design',
-    items: [
-      { href: '/admin/design', label: 'Site Design', icon: <Palette className="h-5 w-5" /> },
-    ],
-  },
-  {
-    title: 'New Products',
-    items: [
-      { href: '/admin/pipeline', label: 'Product Intake', icon: <PackagePlus className="h-5 w-5" /> },
-    ],
-  },
-  {
-    title: 'Insights',
+    title: 'Reports',
     items: [
       { href: '/admin/analytics', label: 'Analytics', icon: <BarChart3 className="h-5 w-5" /> },
-      { href: '/admin/data', label: 'Data Explorer', icon: <Database className="h-5 w-5" /> },
+    ],
+  },
+  {
+    title: 'Storefront',
+    items: [
+      { href: '/admin/design', label: 'Site Design', icon: <Palette className="h-5 w-5" /> },
     ],
   },
   {

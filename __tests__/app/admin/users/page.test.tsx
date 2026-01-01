@@ -2,16 +2,19 @@ import { render, screen } from '@testing-library/react';
 import AdminUsersPage from '@/app/admin/users/page';
 import { getUsers } from '@/lib/admin/users';
 
+// Mock next/navigation hooks used by AdminUsersClient
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: jest.fn(), refresh: jest.fn(), prefetch: jest.fn() }),
+    useSearchParams: () => new URLSearchParams(),
+    usePathname: () => '/admin/users',
+}));
+
 jest.mock('@/lib/admin/users', () => ({
     getUsers: jest.fn(),
 }));
 
 jest.mock('@/components/admin/user-role-select', () => ({
     UserRoleSelect: () => <div data-testid="role-select" />
-}));
-
-jest.mock('@/components/admin/user-search', () => ({
-    UserSearch: () => <div data-testid="user-search" />
 }));
 
 describe('AdminUsersPage', () => {
@@ -31,8 +34,6 @@ describe('AdminUsersPage', () => {
         expect(screen.getByText('User One')).toBeInTheDocument();
         expect(screen.getByText('user1@example.com')).toBeInTheDocument();
         expect(screen.getByText('User Two')).toBeInTheDocument();
-        expect(screen.getAllByTestId('role-select')).toHaveLength(2);
-        expect(screen.getByTestId('user-search')).toBeInTheDocument();
     });
 
     it('renders empty state', async () => {

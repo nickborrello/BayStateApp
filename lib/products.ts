@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
-import { type Product, type Brand } from '@/lib/types';
+import { type Product } from '@/lib/types';
 
 /**
- * Transforms a row from products_published view to Product interface.
- * The view includes brand data directly, eliminating N+1 queries.
+ * Transforms a row from products table to Product interface.
+ * The query includes brand data directly, eliminating N+1 queries.
  */
 interface ProductRow {
   id: string;
@@ -24,7 +24,7 @@ interface ProductRow {
   } | null;
 }
 
-function transformProductRow(row: any): Product {
+function transformProductRow(row: ProductRow): Product {
   const product: Product = {
     id: row.id,
     brand_id: row.brand_id,
@@ -75,7 +75,7 @@ function parseImages(images: unknown): string[] {
 
 /**
  * Fetches a single product by slug.
- * Uses products_published view which includes brand data.
+ * Uses products table which includes brand data.
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = await createClient();
@@ -95,7 +95,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 /**
  * Fetches a single product by SKU/ID.
- * Uses products_published view.
+ * Uses products table.
  */
 export async function getProductById(id: string): Promise<Product | null> {
   const supabase = await createClient();
@@ -115,7 +115,7 @@ export async function getProductById(id: string): Promise<Product | null> {
 
 /**
  * Fetches products with optional filtering and pagination.
- * Uses products_published view which includes brand data.
+ * Uses products table which includes brand data.
  */
 export async function getFilteredProducts(options?: {
   brandSlug?: string;
@@ -197,7 +197,7 @@ export async function getFilteredProducts(options?: {
 
 /**
  * Fetches featured products for the homepage.
- * Uses products_published view.
+ * Uses products table.
  */
 export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
   const { products } = await getFilteredProducts({
