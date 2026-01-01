@@ -53,16 +53,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
   return (
     <div className="w-full px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-zinc-900">All Products</h1>
-        <p className="mt-2 text-zinc-600">
-          Browse our selection of {count} products
-        </p>
-      </div>
-
       <div className="flex flex-col gap-8 lg:flex-row">
         {/* Filters Sidebar */}
-        <aside className="w-full lg:w-64 flex-shrink-0">
+        <aside className="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-20 lg:h-fit">
           <ProductFilters brands={brands} />
         </aside>
 

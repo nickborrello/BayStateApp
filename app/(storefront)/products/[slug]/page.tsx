@@ -6,6 +6,7 @@ import { type Metadata } from 'next';
 import { getProductBySlug } from '@/lib/products';
 import { Badge } from '@/components/ui/badge';
 import { AddToCartButton } from '@/components/storefront/add-to-cart-button';
+import { ProductImageCarousel } from '@/components/storefront/product-image-carousel';
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -89,57 +90,10 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="aspect-square overflow-hidden rounded-xl bg-zinc-100 relative">
-            {(() => {
-              const rawImageSrc = product.images?.[0]?.trim();
-              const hasValidImage =
-                Boolean(rawImageSrc) &&
-                (rawImageSrc.startsWith('/') || rawImageSrc.startsWith('http'));
-
-              if (!hasValidImage) {
-                return (
-                  <div className="flex h-full w-full items-center justify-center text-zinc-400">
-                    No image available
-                  </div>
-                );
-              }
-
-              return (
-                <Image
-                  src={rawImageSrc}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
-                  priority
-                />
-              );
-            })()}
-          </div>
-          {product.images && product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images
-                .slice(1, 5)
-                .map((image) => image.trim())
-                .filter((image) => image.startsWith('/') || image.startsWith('http'))
-                .map((image, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square overflow-hidden rounded-lg bg-zinc-100 relative"
-                  >
-                    <Image
-                      src={image}
-                      alt={`${product.name} ${index + 2}`}
-                      fill
-                      sizes="(max-width: 1024px) 25vw, 12.5vw"
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
+        <ProductImageCarousel
+          images={product.images || []}
+          productName={product.name}
+        />
 
         {/* Product Info */}
         <div className="space-y-6">
