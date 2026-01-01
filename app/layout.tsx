@@ -22,8 +22,8 @@ export const metadata: Metadata = {
     title: "Bay State P&G",
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/logo.png",
+    icon: "/icon.svg",
+    apple: "/icon.svg",
   },
   openGraph: {
     type: "website",

@@ -255,13 +255,16 @@ async function processProducts(shopSiteProducts: ShopSiteProduct[], logId?: stri
     // Transform and upsert each product
     for (const shopSiteProduct of shopSiteProducts) {
         try {
-            const transformed = transformShopSiteProduct(shopSiteProduct);
+            const { brand_name, ...transformed } = transformShopSiteProduct(shopSiteProduct);
+
+            // Build the database record with brand_id lookup
+            const productRecord: Record<string, unknown> = { ...transformed };
 
             // Lookup Brand
-            if (shopSiteProduct.brandName) {
-                const brandId = brandMap.get(shopSiteProduct.brandName.trim());
+            if (brand_name) {
+                const brandId = brandMap.get(brand_name.trim());
                 if (brandId) {
-                    transformed.brand_id = brandId;
+                    productRecord.brand_id = brandId;
                 }
             }
 
@@ -270,13 +273,13 @@ async function processProducts(shopSiteProducts: ShopSiteProduct[], logId?: stri
 
             // Generate unique slug for new products
             if (!isUpdate) {
-                transformed.slug = generateUniqueSlug(transformed.slug, existingSlugs);
-                existingSlugs.add(transformed.slug);
+                productRecord.slug = generateUniqueSlug(transformed.slug, existingSlugs);
+                existingSlugs.add(productRecord.slug as string);
             }
 
             const { data: upserted, error } = await supabase
                 .from('products')
-                .upsert(transformed, {
+                .upsert(productRecord, {
                     onConflict: 'sku',
                 })
                 .select('id')

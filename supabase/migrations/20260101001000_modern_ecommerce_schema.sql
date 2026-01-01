@@ -66,19 +66,24 @@ ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
 
 -- Public read access
+-- Public read access
+DROP POLICY IF EXISTS "Allow public read access to categories" ON categories;
 CREATE POLICY "Allow public read access to categories"
     ON categories FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "Allow public read access to product_categories" ON product_categories;
 CREATE POLICY "Allow public read access to product_categories"
     ON product_categories FOR SELECT
     USING (true);
 
 -- Admin write access
+DROP POLICY IF EXISTS "Allow admin write access to categories" ON categories;
 CREATE POLICY "Allow admin write access to categories"
     ON categories FOR ALL
     USING (auth.jwt() ->> 'role' IN ('admin', 'staff'));
 
+DROP POLICY IF EXISTS "Allow admin write access to product_categories" ON product_categories;
 CREATE POLICY "Allow admin write access to product_categories"
     ON product_categories FOR ALL
     USING (auth.jwt() ->> 'role' IN ('admin', 'staff'));

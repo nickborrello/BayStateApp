@@ -29,7 +29,7 @@ export function StorefrontHeader({ user, userRole }: { user: User | null, userRo
           <Link href="/" className="flex items-center gap-3">
             <div className="h-10 w-10 overflow-hidden rounded-md border border-zinc-200 relative">
               <Image
-                src="/logo.png"
+                src="/icon.svg"
                 alt="Bay State Pet & Garden Supply Logo"
                 fill
                 sizes="40px"

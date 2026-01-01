@@ -5,27 +5,46 @@ import { type Product, type Brand } from '@/lib/types';
  * Transforms a row from products_published view to Product interface.
  * The view includes brand data directly, eliminating N+1 queries.
  */
-function transformProductRow(row: Record<string, unknown>): Product {
+interface ProductRow {
+  id: string;
+  brand_id: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  price: number;
+  stock_status: string;
+  images: unknown;
+  is_featured: boolean;
+  created_at: string;
+  brand: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url: string | null;
+  } | null;
+}
+
+function transformProductRow(row: any): Product {
   const product: Product = {
-    id: row.id as string,
-    brand_id: row.brand_id as string | null,
-    name: row.name as string,
-    slug: row.slug as string,
-    description: row.description as string | null,
+    id: row.id,
+    brand_id: row.brand_id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description,
     price: Number(row.price),
     stock_status: (row.stock_status as Product['stock_status']) || 'in_stock',
     images: parseImages(row.images),
     is_featured: Boolean(row.is_featured),
-    created_at: row.created_at as string,
+    created_at: row.created_at,
   };
 
-  // Brand data is included directly in the view
-  if (row.brand_id && row.brand_name) {
+  // Brand data is included via join
+  if (row.brand) {
     product.brand = {
-      id: row.brand_id as string,
-      name: row.brand_name as string,
-      slug: row.brand_slug as string,
-      logo_url: row.brand_logo_url as string | null,
+      id: row.brand.id,
+      name: row.brand.name,
+      slug: row.brand.slug,
+      logo_url: row.brand.logo_url,
     };
   }
 
@@ -61,8 +80,8 @@ function parseImages(images: unknown): string[] {
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('products_published')
-    .select('*')
+    .from('products')
+    .select('*, brand:brands(id, name, slug, logo_url)')
     .eq('slug', slug)
     .single();
 
@@ -81,8 +100,8 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 export async function getProductById(id: string): Promise<Product | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('products_published')
-    .select('*')
+    .from('products')
+    .select('*, brand:brands(id, name, slug, logo_url)')
     .eq('id', id)
     .single();
 
@@ -112,12 +131,22 @@ export async function getFilteredProducts(options?: {
 }): Promise<{ products: Product[]; count: number }> {
   const supabase = await createClient();
   let query = supabase
-    .from('products_published')
-    .select('*', { count: 'exact' });
+    .from('products')
+    .select('*, brand:brands(id, name, slug, logo_url)', { count: 'exact' });
 
-  // Filter by brand slug (uses the brand_slug column from the view)
+  // Filter by brand slug - resolve to ID first for performance/simplicity
   if (options?.brandSlug) {
-    query = query.eq('brand_slug', options.brandSlug);
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('slug', options.brandSlug)
+      .single();
+
+    if (brand) {
+      query = query.eq('brand_id', brand.id);
+    } else {
+      return { products: [], count: 0 };
+    }
   }
   // Filter by brand ID
   if (options?.brandId) {
@@ -186,8 +215,8 @@ export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
 export async function getAllProducts(): Promise<Product[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('products_published')
-    .select('*')
+    .from('products')
+    .select('*, brand:brands(id, name, slug, logo_url)')
     .order('name');
 
   if (error) {

@@ -27,9 +27,19 @@ export function buildProductSlug(name: string, sku?: string): string {
 
 /**
  * Transform a ShopSite product into the Supabase products table format.
+ * Outputs minimal schema: sku, name, slug, price, description, stock_status, images, is_featured
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function transformShopSiteProduct(product: ShopSiteProduct): any {
+export function transformShopSiteProduct(product: ShopSiteProduct): {
+    sku: string;
+    name: string;
+    slug: string;
+    price: number;
+    description: string | null;
+    stock_status: 'in_stock' | 'out_of_stock' | 'pre_order';
+    images: string[];
+    is_featured: boolean;
+    brand_name: string | null; // Used for brand lookup, not stored directly
+} {
     // Collect all images (primary + additional)
     const images: string[] = [];
     if (product.imageUrl) {
@@ -39,66 +49,28 @@ export function transformShopSiteProduct(product: ShopSiteProduct): any {
         images.push(...product.additionalImages);
     }
 
-    // Determine stock status based on quantity and disabled state
+    // Determine stock status based on quantity and availability
     let stockStatus: 'in_stock' | 'out_of_stock' | 'pre_order' = 'out_of_stock';
     if (product.isDisabled) {
         stockStatus = 'out_of_stock';
     } else if (product.quantityOnHand > 0) {
         stockStatus = 'in_stock';
+    } else if (product.availability?.toLowerCase() === 'in stock') {
+        stockStatus = 'in_stock';
     } else if (product.availability?.toLowerCase().includes('pre')) {
         stockStatus = 'pre_order';
     }
 
-    // Infer GTIN from SKU if missing and SKU looks like a barcode (12-14 digits)
-    let gtin = product.gtin || null;
-    if (!gtin && product.sku && /^\d{12,14}$/.test(product.sku)) {
-        gtin = product.sku;
-    }
-
     return {
-        // Core fields
         sku: product.sku,
         name: product.name,
         slug: buildProductSlug(product.name),
         price: product.price,
-        sale_price: product.saleAmount ?? null,
-        cost: product.cost ?? null,
         description: product.description || null,
-        long_description: product.moreInfoText || null,
         stock_status: stockStatus,
         images,
-
-        // Physical properties
-        weight: product.weight || null,
-        taxable: product.taxable ?? true,
-
-        // Categorization & SEO
-        gtin,
-        product_type: product.productTypeName || null,
-        fulfillment_type: product.fulfillmentType?.toLowerCase() || 'tangible',
-        search_keywords: product.searchKeywords || null,
-        google_product_category: product.googleProductCategory || null,
-
-        // Availability and Status
-        is_disabled: product.isDisabled ?? false,
-        availability: product.availability || null,
-
-        // Inventory management
-        quantity_on_hand: product.quantityOnHand || 0,
-        low_stock_threshold: product.lowStockThreshold || null,
-        out_of_stock_limit: product.outOfStockLimit || 0,
-        minimum_quantity: product.minimumQuantity || 1,
-
-        // ShopSite specific data (stashed in JSONB)
-        shopsite_data: {
-            shopsite_id: product.productId || null,
-            shopsite_guid: product.productGuid || null,
-            legacy_filename: product.fileName || null,
-            brand_name: product.brandName || null,
-            category_name: product.categoryName || null,
-            shopsite_pages: product.shopsitePages || [],
-            raw_xml: product.rawXml || null,
-        },
+        is_featured: false, // Default, can be updated in admin
+        brand_name: product.brandName || null,
     };
 }
 
