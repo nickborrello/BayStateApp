@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getProfile } from '@/lib/auth/roles'
 import { getFrequentlyBoughtProducts, getRecentOrders } from '@/lib/account/reorder'
+import { getPersonalizedProducts } from '@/lib/recommendations'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BuyAgainSection } from '@/components/account/buy-again-section'
+import { ProductCard } from '@/components/storefront/product-card'
 import Link from 'next/link'
-import { Package, User, MapPin, Dog } from 'lucide-react'
+import { Package, User, MapPin, Dog, Heart, ArrowRight } from 'lucide-react'
 import { getUserPets } from '@/lib/account/pets'
 
 export default async function AccountPage() {
@@ -13,11 +15,12 @@ export default async function AccountPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const [profile, frequentProducts, recentOrders, pets] = await Promise.all([
+    const [profile, frequentProducts, recentOrders, pets, petRecommendations] = await Promise.all([
         getProfile(user.id),
         getFrequentlyBoughtProducts(6),
         getRecentOrders(5),
-        getUserPets()
+        getUserPets(),
+        getPersonalizedProducts(user.id, 4)
     ])
 
     return (
@@ -29,6 +32,29 @@ export default async function AccountPage() {
 
             {/* Buy Again Section */}
             <BuyAgainSection products={frequentProducts} />
+
+            {/* Pet Recommendations Section */}
+            {petRecommendations.length > 0 && (
+                <section>
+                    <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Heart className="h-5 w-5 text-rose-500" />
+                            <h2 className="text-xl font-semibold">Recommended for Your Pets</h2>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild>
+                            <Link href="/products">
+                                View More
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
+                    <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                        {petRecommendations.map((product) => (
+                            <ProductCard key={product.id} product={product} />
+                        ))}
+                    </div>
+                </section>
+            )}
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {/* Profile Card */}

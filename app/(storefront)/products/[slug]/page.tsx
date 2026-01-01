@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { AddToCartButton } from '@/components/storefront/add-to-cart-button';
 import { ProductImageCarousel } from '@/components/storefront/product-image-carousel';
 import { ProductAdminEdit } from '@/components/storefront/product-admin-edit';
+import { ProductCard } from '@/components/storefront/product-card';
 import { createClient } from '@/lib/supabase/server';
 import { getUserRole } from '@/lib/auth/roles';
+import { getRelatedProductsByPetType } from '@/lib/recommendations';
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -69,6 +71,9 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   // Check if user is admin or staff
   const userRole = user ? await getUserRole(user.id) : null;
   const canEditProducts = userRole === 'admin' || userRole === 'staff';
+
+  // Fetch related products based on pet type
+  const relatedByPetType = await getRelatedProductsByPetType(product.id, 4);
 
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -180,6 +185,20 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
           </div>
         </div>
       </div>
+
+      {/* Related Products for Pet Type */}
+      {relatedByPetType && (
+        <section className="mt-12 border-t pt-8">
+          <h2 className="mb-6 text-xl font-semibold text-zinc-900">
+            More Products for {relatedByPetType.petTypeName}s
+          </h2>
+          <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
+            {relatedByPetType.products.map((relatedProduct) => (
+              <ProductCard key={relatedProduct.id} product={relatedProduct} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

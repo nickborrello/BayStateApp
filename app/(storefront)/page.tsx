@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FeaturedProducts } from '@/components/storefront/featured-products';
+import { PetRecommendations } from '@/components/storefront/pet-recommendations';
 import { getFeaturedProducts } from '@/lib/data';
 
 /**
@@ -100,6 +101,9 @@ export default async function HomePage() {
           </Card>
         </div>
       </section>
+
+      {/* Personalized Pet Recommendations (for logged-in users with pets) */}
+      <PetRecommendations />
 
       {/* Featured Products */}
       <FeaturedProducts products={featuredProducts} />

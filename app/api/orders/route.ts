@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createOrder } from '@/lib/orders';
+import { createOrder, getOrderById } from '@/lib/orders';
+import { sendOrderConfirmationEmail } from '@/lib/email/resend';
 import { z } from 'zod';
 
 const orderSchema = z.object({
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
         { error: 'Failed to create order' },
         { status: 500 }
       );
+    }
+
+    const orderWithItems = await getOrderById(order.id);
+    if (orderWithItems) {
+      sendOrderConfirmationEmail(orderWithItems).catch((err) => {
+        console.error('Failed to send order confirmation email:', err);
+      });
     }
 
     return NextResponse.json({ order }, { status: 201 });

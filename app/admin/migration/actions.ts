@@ -6,6 +6,7 @@ import { ShopSiteClient, ShopSiteConfig } from '@/lib/admin/migration/shopsite-c
 import { transformShopSiteProduct, generateUniqueSlug } from '@/lib/admin/migration/product-sync';
 import { transformShopSiteCustomer } from '@/lib/admin/migration/customer-sync';
 import { transformShopSiteOrder, batchOrders } from '@/lib/admin/migration/order-sync';
+import { inferPetTypes, PetTypeName } from '@/lib/admin/migration/pet-type-inference';
 import { SyncResult, MigrationError, ShopSiteProduct, ShopSiteCustomer, ShopSiteOrder } from '@/lib/admin/migration/types';
 import { startMigrationLog, completeMigrationLog, updateMigrationProgress } from '@/lib/admin/migration/history';
 
@@ -205,6 +206,7 @@ async function processProducts(shopSiteProducts: ShopSiteProduct[], logId?: stri
 
     const brandMap = new Map<string, string>();     // name -> uuid
     const categoryMap = new Map<string, string>();  // name -> uuid
+    const petTypeMap = new Map<PetTypeName, string>(); // pet type name -> uuid
 
     // Upsert Brands
     if (brandNames.size > 0) {
@@ -245,12 +247,30 @@ async function processProducts(shopSiteProducts: ShopSiteProduct[], logId?: stri
         }
     }
 
+    // Fetch Pet Types for inference mapping
+    const { data: petTypes } = await supabase.from('pet_types').select('id, name');
+    for (const pt of petTypes || []) {
+        petTypeMap.set(pt.name as PetTypeName, pt.id);
+    }
+
     // ------------------------------------------------------------------------
     // Step 2: Transform and Upsert Products
     // ------------------------------------------------------------------------
 
     // Store category links to insert after products
     const productCategoryLinks: { product_id: string, category_id: string }[] = [];
+    
+    // Store pet type links and attributes to insert after products
+    const productPetTypeLinks: { product_id: string, pet_type_id: string, confidence: string }[] = [];
+    const productPetAttributes: {
+        product_id: string,
+        life_stages: string[],
+        size_classes: string[],
+        special_needs: string[],
+        min_weight_lbs: number | null,
+        max_weight_lbs: number | null,
+        confidence: string
+    }[] = [];
 
     // Transform and upsert each product
     for (const shopSiteProduct of shopSiteProducts) {
@@ -302,6 +322,33 @@ async function processProducts(shopSiteProducts: ShopSiteProduct[], logId?: stri
                     }
                 }
 
+                if (upserted) {
+                    const inference = inferPetTypes(shopSiteProduct);
+                    
+                    for (const petTypeName of inference.petTypes) {
+                        const petTypeId = petTypeMap.get(petTypeName);
+                        if (petTypeId) {
+                            productPetTypeLinks.push({
+                                product_id: upserted.id,
+                                pet_type_id: petTypeId,
+                                confidence: 'inferred'
+                            });
+                        }
+                    }
+
+                    if (inference.petTypes.length > 0) {
+                        productPetAttributes.push({
+                            product_id: upserted.id,
+                            life_stages: inference.lifeStages,
+                            size_classes: inference.sizeClasses,
+                            special_needs: inference.specialNeeds,
+                            min_weight_lbs: inference.minWeightLbs,
+                            max_weight_lbs: inference.maxWeightLbs,
+                            confidence: 'inferred'
+                        });
+                    }
+                }
+
                 if (isUpdate) {
                     updated++;
                 } else {
@@ -344,6 +391,42 @@ async function processProducts(shopSiteProducts: ShopSiteProduct[], logId?: stri
                 console.error('Error inserting product categories:', linkError);
                 // We don't fail the whole sync for this, but log it
                 addError('CATEGORY_LINKS', `Failed to link ${batch.length} categories: ${linkError.message}`);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Step 4: Insert Product-PetType Links
+    // ------------------------------------------------------------------------
+    if (productPetTypeLinks.length > 0) {
+        const BATCH_SIZE = 1000;
+        for (let i = 0; i < productPetTypeLinks.length; i += BATCH_SIZE) {
+            const batch = productPetTypeLinks.slice(i, i + BATCH_SIZE);
+            const { error: linkError } = await supabase
+                .from('product_pet_types')
+                .upsert(batch, { onConflict: 'product_id, pet_type_id' });
+
+            if (linkError) {
+                console.error('Error inserting product pet types:', linkError);
+                addError('PET_TYPE_LINKS', `Failed to link ${batch.length} pet types: ${linkError.message}`);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Step 5: Insert Product Pet Attributes
+    // ------------------------------------------------------------------------
+    if (productPetAttributes.length > 0) {
+        const BATCH_SIZE = 1000;
+        for (let i = 0; i < productPetAttributes.length; i += BATCH_SIZE) {
+            const batch = productPetAttributes.slice(i, i + BATCH_SIZE);
+            const { error: attrError } = await supabase
+                .from('product_pet_attributes')
+                .upsert(batch, { onConflict: 'product_id' });
+
+            if (attrError) {
+                console.error('Error inserting product pet attributes:', attrError);
+                addError('PET_ATTRIBUTES', `Failed to insert ${batch.length} pet attributes: ${attrError.message}`);
             }
         }
     }

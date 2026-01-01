@@ -14,12 +14,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PetTypeSelector } from './PetTypeSelector';
 import { updateProduct } from '@/app/admin/products/actions';
 
 interface Brand {
     id: string;
     name: string;
     slug: string;
+}
+
+interface ProductPetType {
+    pet_type_id: string;
+    confidence: 'inferred' | 'manual' | 'verified';
 }
 
 // Define specific type based on queries used in AdminProductsClient
@@ -70,6 +76,7 @@ export function ProductEditModal({
     const [brandId, setBrandId] = useState(product.brand_id || 'none');
     const [stockStatus, setStockStatus] = useState(product.stock_status);
     const [isFeatured, setIsFeatured] = useState(product.is_featured);
+    const [selectedPetTypes, setSelectedPetTypes] = useState<ProductPetType[]>([]);
 
     // Parse images helper
     const parseImages = (images: unknown): string[] => {
@@ -87,21 +94,32 @@ export function ProductEditModal({
 
     const images = parseImages(product.images);
 
-    // Fetch brands
+    // Fetch brands and product pet types
     useEffect(() => {
-        async function fetchBrands() {
+        async function fetchData() {
             try {
-                const res = await fetch('/api/admin/brands');
-                const data = res.ok ? await res.json() : { brands: [] };
-                setBrands(data.brands || []);
+                const [brandsRes, petTypesRes] = await Promise.all([
+                    fetch('/api/admin/brands'),
+                    fetch(`/api/admin/products/${product.id}/pet-types`),
+                ]);
+                
+                if (brandsRes.ok) {
+                    const data = await brandsRes.json();
+                    setBrands(data.brands || []);
+                }
+                
+                if (petTypesRes.ok) {
+                    const data = await petTypesRes.json();
+                    setSelectedPetTypes(data.petTypes || []);
+                }
             } catch (err) {
-                console.error('Failed to load brands', err);
+                console.error('Failed to load data', err);
             } finally {
                 setLoading(false);
             }
         }
-        fetchBrands();
-    }, []);
+        fetchData();
+    }, [product.id]);
 
     // Handle keyboard shortcuts
     const handleKeyDown = useCallback(
@@ -138,10 +156,21 @@ export function ProductEditModal({
                 formData.append('brand_id', brandId);
             }
 
-            const result = await updateProduct(product.id, formData);
+            const [productResult, petTypesRes] = await Promise.all([
+                updateProduct(product.id, formData),
+                fetch(`/api/admin/products/${product.id}/pet-types`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ petTypes: selectedPetTypes }),
+                }),
+            ]);
 
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to update product');
+            if (!productResult.success) {
+                throw new Error(productResult.error || 'Failed to update product');
+            }
+
+            if (!petTypesRes.ok) {
+                throw new Error('Failed to update pet types');
             }
 
             toast.success('Product updated successfully');
@@ -274,6 +303,12 @@ export function ProductEditModal({
                                     Featured Product
                                 </Label>
                             </div>
+
+                            <PetTypeSelector
+                                productId={product.id}
+                                selectedPetTypes={selectedPetTypes}
+                                onChange={setSelectedPetTypes}
+                            />
                         </div>
 
                         {/* Right Column - Description */}

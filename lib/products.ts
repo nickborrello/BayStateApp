@@ -121,6 +121,7 @@ export async function getFilteredProducts(options?: {
   brandSlug?: string;
   brandId?: string;
   categoryId?: string;
+  petTypeId?: string;
   stockStatus?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -155,6 +156,20 @@ export async function getFilteredProducts(options?: {
   // Filter by category
   if (options?.categoryId) {
     query = query.eq('category_id', options.categoryId);
+  }
+  // Filter by pet type - join with product_pet_types table
+  if (options?.petTypeId) {
+    const { data: productIds } = await supabase
+      .from('product_pet_types')
+      .select('product_id')
+      .eq('pet_type_id', options.petTypeId);
+
+    if (productIds && productIds.length > 0) {
+      const ids = productIds.map((p) => p.product_id);
+      query = query.in('id', ids);
+    } else {
+      return { products: [], count: 0 };
+    }
   }
   // Filter by stock status
   if (options?.stockStatus) {

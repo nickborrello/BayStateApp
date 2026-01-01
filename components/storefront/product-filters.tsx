@@ -8,19 +8,26 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
+interface PetType {
+  id: string;
+  name: string;
+}
+
 interface ProductFiltersProps {
   brands: Brand[];
+  petTypes: PetType[];
 }
 
 /**
  * ProductFilters - Sidebar filters for product listing.
  */
-export function ProductFilters({ brands }: ProductFiltersProps) {
+export function ProductFilters({ brands, petTypes }: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentSearch = searchParams.get('search') || '';
   const currentBrand = searchParams.get('brand') || '';
+  const currentPetType = searchParams.get('petType') || '';
   const currentStock = searchParams.get('stock') || '';
   const currentMinPrice = searchParams.get('minPrice') || '';
   const currentMaxPrice = searchParams.get('maxPrice') || '';
@@ -53,7 +60,7 @@ export function ProductFilters({ brands }: ProductFiltersProps) {
     router.push('/products');
   };
 
-  const hasFilters = currentSearch || currentBrand || currentStock || currentMinPrice || currentMaxPrice;
+  const hasFilters = currentSearch || currentBrand || currentPetType || currentStock || currentMinPrice || currentMaxPrice;
 
   return (
     <div className="space-y-6 rounded-lg border bg-white p-4">
@@ -115,6 +122,23 @@ export function ProductFilters({ brands }: ProductFiltersProps) {
           {brands.map((brand) => (
             <option key={brand.id} value={brand.slug}>
               {brand.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Pet Type Filter */}
+      <div>
+        <Label className="text-sm font-medium">Pet Type</Label>
+        <select
+          value={currentPetType}
+          onChange={(e) => updateFilter('petType', e.target.value)}
+          className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          <option value="">All Pets</option>
+          {petTypes.map((petType) => (
+            <option key={petType.id} value={petType.id}>
+              {petType.name}
             </option>
           ))}
         </select>
