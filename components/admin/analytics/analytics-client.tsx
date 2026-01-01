@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { type AnalyticsData } from '@/app/api/admin/analytics/route';
 
-type DateRange = 'today' | '7days' | '30days' | 'custom';
+type DateRange = 'today' | '7days' | '30days' | 'all' | 'custom';
 
 interface AnalyticsClientProps {
   initialRange?: DateRange;
@@ -99,17 +99,22 @@ export function AnalyticsClient({ initialRange = '7days' }: AnalyticsClientProps
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-lg border bg-white p-1">
-            {(['today', '7days', '30days'] as const).map((r) => (
+            {(['today', '7days', '30days', 'all'] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setRange(r)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  range === r
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${range === r
                     ? 'bg-purple-600 text-white'
                     : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                  }`}
               >
-                {r === 'today' ? 'Today' : r === '7days' ? '7 Days' : '30 Days'}
+                {r === 'today'
+                  ? 'Today'
+                  : r === '7days'
+                    ? '7 Days'
+                    : r === '30days'
+                      ? '30 Days'
+                      : 'All Time'}
               </button>
             ))}
           </div>
