@@ -128,7 +128,7 @@ export async function syncProductsAction(): Promise<SyncResult> {
     const client = new ShopSiteClient(config);
     let shopSiteProducts = [];
     try {
-        shopSiteProducts = await client.fetchProducts(TEST_LIMIT);
+        shopSiteProducts = await client.fetchProducts();
     } catch (err) {
         const result = {
             success: false,
@@ -487,7 +487,7 @@ export async function syncCustomersAction(): Promise<SyncResult> {
     const client = new ShopSiteClient(config);
     let shopSiteCustomers = [];
     try {
-        shopSiteCustomers = await client.fetchCustomers(TEST_LIMIT);
+        shopSiteCustomers = await client.fetchCustomers();
     } catch (err) {
         const result = {
             success: false,
@@ -730,40 +730,55 @@ async function processOrders(shopSiteOrders: ShopSiteOrder[], logId?: string): P
             .filter(Boolean)
     );
 
-    const orderBatches = batchOrders(shopSiteOrders, 10);
-    console.log(`[Sync] Starting processing of ${orderBatches.length} batches...`);
+    const BATCH_SIZE = 50;
+    const orderBatches = batchOrders(shopSiteOrders, BATCH_SIZE);
+    console.log(`[Sync] Starting processing of ${orderBatches.length} batches (size ${BATCH_SIZE})...`);
 
     let batchCount = 0;
     for (const batch of orderBatches) {
         batchCount++;
-        if (batchCount % 10 === 0) console.log(`[Sync] Processing batch ${batchCount}/${orderBatches.length}`);
+        if (batchCount % 5 === 0) console.log(`[Sync] Processing batch ${batchCount}/${orderBatches.length}`);
 
-        for (const shopSiteOrder of batch) {
-            try {
-                // Removed manual check - rely on Upsert
+        try {
+            const batchOrdersData = [];
+            const batchOrdersItems: any[] = [];
+            const batchLegacyNumbers: string[] = [];
 
+            for (const shopSiteOrder of batch) {
                 const { order: orderData, items } = transformShopSiteOrder(
                     shopSiteOrder,
                     profileIdMap,
                     productIdMap
                 );
+                batchOrdersData.push(orderData);
+                batchOrdersItems.push(items);
+                batchLegacyNumbers.push(shopSiteOrder.orderNumber);
+            }
 
-                // Upsert order to handle both new and existing
-                const { data: newOrder, error: orderError } = await supabase
-                    .from('orders')
-                    .upsert(orderData, { onConflict: 'legacy_order_number' })
-                    .select('id')
-                    .single();
+            // 1. Batch Upsert Orders
+            const { data: upsertedOrders, error: orderError } = await supabase
+                .from('orders')
+                .upsert(batchOrdersData, { onConflict: 'legacy_order_number' })
+                .select('id, legacy_order_number');
 
-                if (orderError) {
-                    console.error(`[Sync] Failed to upsert order ${shopSiteOrder.orderNumber}:`, orderError);
-                    addError(shopSiteOrder.orderNumber, orderError.message);
-                    failed++;
-                    continue;
-                }
+            if (orderError) {
+                console.error(`[Sync] Failed to upsert order batch:`, orderError);
+                for (const order of batch) addError(order.orderNumber, orderError.message);
+                failed += batch.length;
+                continue;
+            }
 
-                if (newOrder) {
-                    // Update stats
+            if (upsertedOrders) {
+                const idMap = new Map<string, string>();
+                upsertedOrders.forEach((o: { id: string, legacy_order_number: string }) => {
+                    idMap.set(o.legacy_order_number, o.id);
+                });
+
+                // Update stats and prepare items
+                const allItemsToInsert: any[] = [];
+                const orderIdsToClear: string[] = [];
+
+                batch.forEach((shopSiteOrder, index) => {
                     if (existingOrderNumbers.has(shopSiteOrder.orderNumber)) {
                         updated++;
                     } else {
@@ -771,48 +786,56 @@ async function processOrders(shopSiteOrders: ShopSiteOrder[], logId?: string): P
                         existingOrderNumbers.add(shopSiteOrder.orderNumber);
                     }
 
-                    // Handle Items: Delete existing and re-insert to ensure sync
-                    if (items.length > 0) {
-                        // 1. Clear existing items
-                        await supabase
-                            .from('order_items')
-                            .delete()
-                            .eq('order_id', newOrder.id);
-
-                        // 2. Insert fresh items
-                        const orderItems = items.map(item => ({
-                            ...item,
-                            order_id: newOrder.id,
-                        }));
-
-                        const { error: itemsError } = await supabase
-                            .from('order_items')
-                            .insert(orderItems);
-
-                        if (itemsError) {
-                            console.error(`[Sync] Failed to insert items for ${shopSiteOrder.orderNumber}:`, itemsError);
-                            addError(`${shopSiteOrder.orderNumber} items`, itemsError.message);
-                        }
+                    const dbOrderId = idMap.get(shopSiteOrder.orderNumber);
+                    if (dbOrderId) {
+                        orderIdsToClear.push(dbOrderId);
+                        const items = batchOrdersItems[index];
+                        items.forEach((item: any) => {
+                            allItemsToInsert.push({
+                                ...item,
+                                order_id: dbOrderId,
+                            });
+                        });
                     }
+                });
+
+                // 2. Clear existing items for these orders
+                if (orderIdsToClear.length > 0) {
+                    await supabase
+                        .from('order_items')
+                        .delete()
+                        .in('order_id', orderIdsToClear);
                 }
 
-            } catch (err) {
-                console.error(`[Sync] Exception for order ${shopSiteOrder.orderNumber}:`, err);
-                addError(shopSiteOrder.orderNumber, err instanceof Error ? err.message : 'Unknown error');
-                failed++;
+                // 3. Insert fresh items
+                if (allItemsToInsert.length > 0) {
+                    const { error: itemsError } = await supabase
+                        .from('order_items')
+                        .insert(allItemsToInsert);
+
+                    if (itemsError) {
+                        console.error(`[Sync] Failed to insert items for batch:`, itemsError);
+                        addError(`Batch items`, itemsError.message);
+                    }
+                }
             }
 
-            if ((created + updated + failed) % 10 === 0 && logId) {
-                await updateMigrationProgress(logId, {
-                    success: true,
-                    processed: shopSiteOrders.length,
-                    created,
-                    updated,
-                    failed,
-                    errors: [],
-                    duration: Date.now() - startTime,
-                });
-            }
+        } catch (err) {
+            console.error(`[Sync] Exception in batch processing:`, err);
+            addError('BATCH', err instanceof Error ? err.message : 'Unknown error');
+            failed += batch.length;
+        }
+
+        if (logId) {
+            await updateMigrationProgress(logId, {
+                success: true,
+                processed: shopSiteOrders.length,
+                created,
+                updated,
+                failed,
+                errors: [],
+                duration: Date.now() - startTime,
+            });
         }
     }
 
