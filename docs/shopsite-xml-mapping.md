@@ -240,7 +240,7 @@ Based on this mapping, the following columns may need to be added:
 
 ## Related Files
 
-- [XML Sample](file:///Users/nickborrello/Desktop/Projects/BayStateApp/docs/shopsite-products-2025-12-31%20(2).xml)
-- [Parser Implementation](file:///Users/nickborrello/Desktop/Projects/BayStateApp/lib/admin/migration/shopsite-client.ts)
-- [Type Definitions](file:///Users/nickborrello/Desktop/Projects/BayStateApp/lib/admin/migration/types.ts)
-- [Initial Schema](file:///Users/nickborrello/Desktop/Projects/BayStateApp/supabase/migrations/20251230150000_initial_schema.sql)
+- [Parser Implementation](../lib/admin/migration/shopsite-client.ts)
+- [Type Definitions](../lib/admin/migration/types.ts)
+- [Initial Schema](../supabase/migrations/20251230150000_initial_schema.sql)
+

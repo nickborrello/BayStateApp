@@ -122,7 +122,11 @@ function parseOrdersXml(xmlText: string): ShopSiteOrder[] {
 }
 
 try {
-    const filePath = '/Users/nickborrello/Downloads/shopsite-orders-2025-12-31.xml';
+    const filePath = process.argv[2];
+    if (!filePath) {
+        console.error('Usage: npx tsx scripts/test-order-parser.ts <path-to-orders.xml>');
+        process.exit(1);
+    }
     console.log(`Reading file: ${filePath}`);
 
     // Read with correct encoding

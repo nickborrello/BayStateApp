@@ -12,7 +12,7 @@ This guide explains how to set up a new laptop or computer as a self-hosted GitH
 
 ## Step 1: Get Your Runner Token
 
-1. Go to [GitHub → BayStateApp → Settings → Actions → Runners](https://github.com/nickborrello/BayStateApp/settings/actions/runners)
+1. Go to [GitHub → BayStateApp → Settings → Actions → Runners](https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp/settings/actions/runners)
 2. Click **"New self-hosted runner"**
 3. Copy the **token** shown (it expires in 1 hour)
 
@@ -24,14 +24,14 @@ Open Terminal and run:
 
 ```bash
 # Download and run the setup script
-curl -fsSL https://raw.githubusercontent.com/nickborrello/BayStateApp/main/scripts/setup-runner.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Bay-State-Pet-and-Garden-Supply/BayStateApp/main/scripts/setup-runner.sh | bash
 ```
 
 Or manually:
 
 ```bash
 # Clone the repo (if not already)
-git clone https://github.com/nickborrello/BayStateApp.git
+git clone https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp.git
 cd BayStateApp
 
 # Run the setup script
@@ -49,7 +49,7 @@ The script will:
 
 ## Step 3: Verify Runner is Online
 
-1. Go to [GitHub → BayStateApp → Settings → Actions → Runners](https://github.com/nickborrello/BayStateApp/settings/actions/runners)
+1. Go to [GitHub → BayStateApp → Settings → Actions → Runners](https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp/settings/actions/runners)
 2. Your runner should appear with a **green "Idle"** status
 3. In the admin panel, go to `/admin/scraping` — the runner count should update
 

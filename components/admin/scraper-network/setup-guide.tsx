@@ -76,7 +76,7 @@ export function SetupGuide() {
                             <h4 className="font-semibold text-gray-900">3. Build the Scraper Image</h4>
                             <p className="mt-1">Clone the repo and build the Docker image:</p>
                             <CodeBlock
-                                code={`git clone https://github.com/nickborrello/BayStateApp.git
+                                code={`git clone https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp.git
 cd BayStateApp/scraper_backend
 docker build -t baystate-scraper:latest .`}
                                 id="docker-build"
