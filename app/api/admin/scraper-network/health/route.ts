@@ -78,11 +78,15 @@ export async function GET() {
             status: 'ok',
             message: `Connected - ${status.totalCount} runner(s) registered`,
         });
-    } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        const message = error instanceof Error ? error.message : 'Connection failed';
+        const isPermissionError = message.includes("Missing 'Administration' permission");
+
         checks.push({
             name: 'GitHub API',
-            status: 'error',
-            message: error instanceof Error ? error.message : 'Connection failed',
+            status: isPermissionError ? 'warning' : 'error',
+            message: message,
         });
     }
 

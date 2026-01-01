@@ -116,26 +116,36 @@ class GitHubAppClient {
      */
     async getRunners(): Promise<GitHubRunnersResponse> {
         const octokit = await this.getOctokit();
-        const response = await octokit.rest.actions.listSelfHostedRunnersForRepo({
-            owner: this.owner,
-            repo: this.repo,
-        });
+        try {
+            const response = await octokit.rest.actions.listSelfHostedRunnersForRepo({
+                owner: this.owner,
+                repo: this.repo,
+            });
 
-        return {
-            total_count: response.data.total_count,
-            runners: response.data.runners.map((runner) => ({
-                id: runner.id,
-                name: runner.name,
-                os: runner.os,
-                status: runner.status as 'online' | 'offline',
-                busy: runner.busy,
-                labels: runner.labels.map((label) => ({
-                    id: label.id ?? 0,
-                    name: label.name ?? '',
-                    type: label.type ?? '',
+            return {
+                total_count: response.data.total_count,
+                runners: response.data.runners.map((runner) => ({
+                    id: runner.id,
+                    name: runner.name,
+                    os: runner.os,
+                    status: runner.status as 'online' | 'offline',
+                    busy: runner.busy,
+                    labels: runner.labels.map((label) => ({
+                        id: label.id ?? 0,
+                        name: label.name ?? '',
+                        type: label.type ?? '',
+                    })),
                 })),
-            })),
-        };
+            };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            if (error.status === 403 && error.message.includes('Resource not accessible by integration')) {
+                throw new Error(
+                    "Missing 'Administration' permission. Please update the GitHub App permissions to allow 'Administration: Read-only' access."
+                );
+            }
+            throw error;
+        }
     }
 
     /**
