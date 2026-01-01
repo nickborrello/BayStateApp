@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '@/lib/supabase/server'
 import { getSafeRedirectUrl, isValidRedirectUrl } from '@/lib/auth/redirect-validation'
+import { getURL } from '@/lib/auth/url-utils'
 
 export async function loginAction(values: { email: string, password: string }, redirectTo?: string) {
     const supabase = await createClient()
@@ -64,9 +65,9 @@ export async function signupAction(values: { email: string, password: string, fu
 export async function loginWithOAuth(provider: 'google' | 'apple' | 'facebook', next?: string) {
     const supabase = await createClient()
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const callbackUrl = new URL(`${siteUrl}/auth/callback`)
-    
+    const siteUrl = getURL()
+    const callbackUrl = new URL(`${siteUrl}auth/callback`)
+
     // SECURITY: Validate next URL before passing to callback
     if (isValidRedirectUrl(next)) {
         callbackUrl.searchParams.set('next', next)
@@ -90,9 +91,9 @@ export async function loginWithOAuth(provider: 'google' | 'apple' | 'facebook', 
 
 export async function resetPassword(email: string) {
     const supabase = await createClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const siteUrl = getURL()
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${siteUrl}/auth/callback?next=/update-password`,
+        redirectTo: `${siteUrl}auth/callback?next=/update-password`,
     })
     if (error) return { error: error.message }
     return { success: true }
