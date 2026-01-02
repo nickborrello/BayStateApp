@@ -10,48 +10,60 @@ This guide explains how to set up a new laptop or computer as a self-hosted GitH
 
 ---
 
-## Step 1: Get Your Runner Token
+## Step 1: Generate Scraper Credentials
 
-1. Go to [GitHub → BayStateApp → Settings → Actions → Runners](https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp/settings/actions/runners)
+1. Login to the **BayStateApp Admin Panel**
+2. Navigate to **Scraper Network** (or `/admin/scraper-network`)
+3. Scroll to the **Runner Accounts** section
+4. Click **"Create Account"** and enter a unique name for your computer
+5. Copy the generated **Email** and **Password** (you will need these for Step 3)
+
+---
+
+## Step 2: Get Your GitHub Runner Token
+
+1. Go to [GitHub → BayStateScraper → Settings → Actions → Runners](https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateScraper/settings/actions/runners)
 2. Click **"New self-hosted runner"**
 3. Copy the **token** shown (it expires in 1 hour)
 
 ---
 
-## Step 2: Run the Setup Script
+## Step 3: Run the Setup Script
 
 Open Terminal and run:
 
 ```bash
-# Download and run the setup script
-curl -fsSL https://raw.githubusercontent.com/Bay-State-Pet-and-Garden-Supply/BayStateApp/main/scripts/setup-runner.sh | bash
-```
-
-Or manually:
-
-```bash
-# Clone the repo (if not already)
-git clone https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp.git
-cd BayStateApp
+# Clone the Scraper repository
+git clone https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateScraper.git
+cd BayStateScraper
 
 # Run the setup script
-chmod +x scripts/setup-runner.sh
-./scripts/setup-runner.sh
+./setup_local_runner.sh
 ```
 
 The script will:
-1. Build the Docker scraper image
-2. Download the GitHub Actions runner
-3. Prompt you for the token
-4. Configure and start the runner
+1. Install Python dependencies
+2. Install Playwright browsers
+3. Create a `.env` file for you
+4. Prompt you to enter the credentials from **Step 1**
 
 ---
 
-## Step 3: Verify Runner is Online
+## Step 4: Configure GitHub Runner
 
-1. Go to [GitHub → BayStateApp → Settings → Actions → Runners](https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateApp/settings/actions/runners)
+Follow the GitHub instructions from **Step 2** to configure the actions runner. When prompted for labels, ensure you include `docker`:
+
+```bash
+./config.sh --url https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateScraper --token <YOUR_TOKEN> --labels self-hosted,docker
+```
+
+---
+
+## Step 5: Verify Runner is Online
+
+1. Go to [GitHub → BayStateScraper → Settings → Actions → Runners](https://github.com/Bay-State-Pet-and-Garden-Supply/BayStateScraper/settings/actions/runners)
 2. Your runner should appear with a **green "Idle"** status
-3. In the admin panel, go to `/admin/scraping` — the runner count should update
+3. In the BayStateApp admin panel, the runner should now appear in the **Connected Runners** grid.
 
 ---
 
