@@ -5,15 +5,20 @@ import { transformShopSiteProduct, buildProductSlug } from '@/lib/admin/migratio
 
 describe('Product Sync Utilities', () => {
     describe('transformShopSiteProduct', () => {
-        it('transforms ShopSite product to minimal Supabase format', () => {
+        it('transforms ShopSite product to full feature parity format', () => {
             const shopSiteProduct = {
                 sku: 'SKU-001',
                 name: 'Test Product',
                 price: 29.99,
+                saleAmount: 24.99,
                 description: 'A test product description',
                 quantityOnHand: 10,
                 imageUrl: 'https://example.com/image.jpg',
                 brandName: 'Test Brand',
+                categoryName: 'Dog Food',
+                weight: 5.5,
+                searchKeywords: 'dog, food, healthy',
+                isSpecialOrder: true
             };
 
             const result = transformShopSiteProduct(shopSiteProduct);
@@ -23,11 +28,16 @@ describe('Product Sync Utilities', () => {
                 name: 'Test Product',
                 slug: 'test-product',
                 price: 29.99,
+                sale_price: 24.99,
                 description: 'A test product description',
                 stock_status: 'in_stock',
                 images: ['https://example.com/image.jpg'],
                 is_featured: false,
+                is_special_order: true,
+                weight: 5.5,
+                search_keywords: 'dog, food, healthy',
                 brand_name: 'Test Brand',
+                category_name: 'Dog Food',
             });
         });
 

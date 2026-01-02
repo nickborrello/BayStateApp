@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
-
-// Webhook secret for validating requests from runners
-const WEBHOOK_SECRET = process.env.SCRAPER_WEBHOOK_SECRET;
+import { validateSignature } from '@/lib/scraper-auth';
 
 // Create Supabase admin client lazily (runtime only, not at build)
 function getSupabaseAdmin(): SupabaseClient {
@@ -39,31 +36,6 @@ interface CallbackPayload {
         scrapers_run?: string[];
         data?: Record<string, ScrapedData>; // SKU -> scraper results
     };
-}
-
-/**
- * Validates the webhook signature from the runner.
- * Uses HMAC-SHA256 to verify the request came from a trusted source.
- */
-function validateSignature(payload: string, signature: string | null): boolean {
-    if (!WEBHOOK_SECRET || !signature) {
-        return false;
-    }
-
-    const expectedSignature = crypto
-        .createHmac('sha256', WEBHOOK_SECRET)
-        .update(payload)
-        .digest('hex');
-
-    // Use timing-safe comparison to prevent timing attacks
-    const signatureBuffer = Buffer.from(signature, 'hex');
-    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
-
-    if (signatureBuffer.length !== expectedBuffer.length) {
-        return false;
-    }
-
-    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
 }
 
 /**

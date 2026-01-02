@@ -74,6 +74,7 @@ const navSections: NavSection[] = [
       { href: '/admin/users', label: 'Users', icon: <Users className="h-5 w-5" />, adminOnly: true },
       { href: '/admin/scraper-network', label: 'Scraper Network', icon: <Network className="h-5 w-5" />, adminOnly: true },
       { href: '/admin/migration', label: 'Data Migration', icon: <RefreshCw className="h-5 w-5" />, adminOnly: true },
+      { href: '/admin/tools/integra-sync', label: 'Integra Sync', icon: <RefreshCw className="h-5 w-5" />, adminOnly: true },
       { href: '/admin/settings', label: 'Settings', icon: <Settings className="h-5 w-5" />, adminOnly: true },
     ],
   },

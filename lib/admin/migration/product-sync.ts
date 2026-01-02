@@ -34,11 +34,16 @@ export function transformShopSiteProduct(product: ShopSiteProduct): {
     name: string;
     slug: string;
     price: number;
+    sale_price: number | null;
     description: string | null;
     stock_status: 'in_stock' | 'out_of_stock' | 'pre_order';
     images: string[];
     is_featured: boolean;
+    is_special_order: boolean;
+    weight: number | null;
+    search_keywords: string | null;
     brand_name: string | null; // Used for brand lookup, not stored directly
+    category_name: string | null; // Used for category lookup, not stored directly
 } {
     // Collect all images (primary + additional)
     const images: string[] = [];
@@ -66,11 +71,16 @@ export function transformShopSiteProduct(product: ShopSiteProduct): {
         name: product.name,
         slug: buildProductSlug(product.name),
         price: product.price,
+        sale_price: product.saleAmount || null,
         description: product.description || null,
         stock_status: stockStatus,
         images,
         is_featured: false, // Default, can be updated in admin
+        is_special_order: !!product.isSpecialOrder,
+        weight: product.weight || null,
+        search_keywords: product.searchKeywords || null,
         brand_name: product.brandName || null,
+        category_name: product.categoryName || null,
     };
 }
 

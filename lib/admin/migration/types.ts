@@ -47,6 +47,7 @@ export interface ShopSiteProduct {
     // Status fields
     isDisabled?: boolean;             // <ProductDisabled> === 'checked'
     availability?: string;            // <Availability> ('in stock', 'out of stock', etc.)
+    isSpecialOrder?: boolean;         // <ProductField11> === 'yes'
     // SEO and content
     fileName?: string;                // <FileName> - legacy URL slug
     moreInfoText?: string;            // <MoreInformationText> - HTML product details

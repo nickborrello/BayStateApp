@@ -18,11 +18,17 @@ export interface Product {
   slug: string;
   description: string | null;
   price: number;
+  sale_price: number | null;
   stock_status: 'in_stock' | 'out_of_stock' | 'pre_order';
   images: string[];
   is_featured: boolean;
+  is_special_order: boolean;
+  weight: number | null;
+  search_keywords: string | null;
+  category_id: string | null;
   created_at: string;
   brand?: Brand;
+  category?: Category;
 }
 
 export interface Service {

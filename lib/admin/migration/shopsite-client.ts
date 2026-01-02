@@ -451,6 +451,7 @@ export class ShopSiteClient {
                 outOfStockLimit,
                 googleProductCategory,
                 shopsitePages,
+                isSpecialOrder: this.extractXmlValue(productXml, 'ProductField11')?.toLowerCase() === 'yes',
                 rawXml: productXml,
             });
 
