@@ -12,15 +12,12 @@ interface ConfigCheck {
 export async function GET() {
     const checks: ConfigCheck[] = [];
 
-    // Check environment variables
     const hasAppId = !!process.env.GITHUB_APP_ID;
     const hasPrivateKey = !!process.env.GITHUB_APP_PRIVATE_KEY;
     const hasInstallationId = !!process.env.GITHUB_APP_INSTALLATION_ID;
     const hasOwner = !!process.env.GITHUB_OWNER;
     const hasRepo = !!process.env.GITHUB_REPO;
-    const hasWebhookSecret = !!process.env.SCRAPER_WEBHOOK_SECRET;
 
-    // GitHub App Config
     if (hasAppId && hasPrivateKey && hasInstallationId) {
         checks.push({
             name: 'GitHub App',
@@ -39,7 +36,6 @@ export async function GET() {
         });
     }
 
-    // Repository Config
     if (hasOwner && hasRepo) {
         checks.push({
             name: 'Repository',
@@ -54,22 +50,12 @@ export async function GET() {
         });
     }
 
-    // Webhook Secret
-    if (hasWebhookSecret) {
-        checks.push({
-            name: 'Webhook Secret',
-            status: 'ok',
-            message: 'Callback authentication configured',
-        });
-    } else {
-        checks.push({
-            name: 'Webhook Secret',
-            status: 'warning',
-            message: 'SCRAPER_WEBHOOK_SECRET not set - callbacks will fail',
-        });
-    }
+    checks.push({
+        name: 'Runner Auth',
+        status: 'ok',
+        message: 'JWT authentication via Supabase Auth',
+    });
 
-    // Test GitHub API connection
     try {
         const client = getGitHubClient();
         const status = await client.getRunnerStatus();
@@ -78,8 +64,7 @@ export async function GET() {
             status: 'ok',
             message: `Connected - ${status.totalCount} runner(s) registered`,
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
+    } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Connection failed';
         const isPermissionError = message.includes("Missing 'Administration' permission");
 

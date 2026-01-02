@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { validateSignature } from '@/lib/scraper-auth';
+import { validateRunnerJWT } from '@/lib/scraper-auth';
 
-/**
- * Create Supabase admin client lazily (runtime only, not at build)
- */
 function getSupabaseAdmin(): SupabaseClient {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -14,9 +11,6 @@ function getSupabaseAdmin(): SupabaseClient {
     return createClient(url, key);
 }
 
-/**
- * Scraper configuration as stored in the database
- */
 interface ScraperConfig {
     name: string;
     disabled: boolean;
@@ -27,9 +21,6 @@ interface ScraperConfig {
     test_skus?: string[];
 }
 
-/**
- * Job configuration response sent to runners
- */
 interface JobConfigResponse {
     job_id: string;
     skus: string[];
@@ -38,31 +29,20 @@ interface JobConfigResponse {
     max_workers: number;
 }
 
-/**
- * GET /api/scraper/v1/job
- * 
- * Runners call this endpoint to fetch job details and scraper configurations.
- * This eliminates the need for runners to have direct database access.
- * 
- * Authentication: HMAC-SHA256 signature on the job_id
- * - Header: X-Webhook-Signature = HMAC(job_id, SCRAPER_WEBHOOK_SECRET)
- * 
- * Query params:
- * - job_id: The UUID of the scrape job to fetch
- * 
- * Returns:
- * - job_id: The job identifier
- * - skus: Array of SKUs to scrape (or empty for all staging products)
- * - scrapers: Array of scraper configs with selectors and options
- * - test_mode: Whether this is a test run
- * - max_workers: Maximum concurrent workers
- */
 export async function GET(request: NextRequest) {
     try {
+        const runner = await validateRunnerJWT(request.headers.get('Authorization'));
+        if (!runner) {
+            console.error('[Scraper API] Invalid or missing JWT');
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
         const { searchParams } = new URL(request.url);
         const jobId = searchParams.get('job_id');
 
-        // Validate required job_id parameter
         if (!jobId) {
             return NextResponse.json(
                 { error: 'Missing required parameter: job_id' },
@@ -70,19 +50,8 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Validate signature - runner must sign the job_id
-        const signature = request.headers.get('X-Webhook-Signature');
-        if (!validateSignature(jobId, signature)) {
-            console.error(`[Scraper API] Invalid signature for job ${jobId}`);
-            return NextResponse.json(
-                { error: 'Invalid signature' },
-                { status: 401 }
-            );
-        }
-
         const supabase = getSupabaseAdmin();
 
-        // Fetch the job
         const { data: job, error: jobError } = await supabase
             .from('scrape_jobs')
             .select('*')
@@ -97,8 +66,6 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Fetch scraper configurations
-        // If job specifies scrapers, fetch those; otherwise fetch all enabled
         let scraperQuery = supabase
             .from('scrapers')
             .select('*')
@@ -118,7 +85,6 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // If job has no SKUs specified, fetch staging products
         let skus: string[] = job.skus || [];
         if (skus.length === 0) {
             const { data: stagingProducts } = await supabase
@@ -132,7 +98,6 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Build response
         const response: JobConfigResponse = {
             job_id: job.id,
             skus,
@@ -149,7 +114,7 @@ export async function GET(request: NextRequest) {
             max_workers: job.max_workers || 3,
         };
 
-        console.log(`[Scraper API] Job ${jobId} config sent: ${skus.length} SKUs, ${scrapers?.length || 0} scrapers`);
+        console.log(`[Scraper API] Job ${jobId} config sent to ${runner.runnerName}: ${skus.length} SKUs, ${scrapers?.length || 0} scrapers`);
 
         return NextResponse.json(response);
     } catch (error) {

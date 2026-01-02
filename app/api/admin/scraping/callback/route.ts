@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { validateSignature } from '@/lib/scraper-auth';
+import { validateRunnerJWT } from '@/lib/scraper-auth';
 
-// Create Supabase admin client lazily (runtime only, not at build)
 function getSupabaseAdmin(): SupabaseClient {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -34,40 +33,23 @@ interface CallbackPayload {
     results?: {
         skus_processed?: number;
         scrapers_run?: string[];
-        data?: Record<string, ScrapedData>; // SKU -> scraper results
+        data?: Record<string, ScrapedData>;
     };
 }
 
-/**
- * POST /api/admin/scraping/callback
- * 
- * Receives status updates and results from self-hosted runners.
- * Runners have NO database credentials - they report back here.
- * 
- * When scraping completes:
- * 1. Updates products_ingestion.sources with scraped data
- * 2. Moves products to 'scraped' status
- * 3. Marks job as completed
- */
 export async function POST(request: NextRequest) {
     try {
-        // Get raw body for signature validation
-        const rawBody = await request.text();
-        const signature = request.headers.get('X-Webhook-Signature');
-
-        // Validate signature
-        if (!validateSignature(rawBody, signature)) {
-            console.error('[Callback] Invalid webhook signature');
+        const runner = await validateRunnerJWT(request.headers.get('Authorization'));
+        if (!runner) {
+            console.error('[Callback] Invalid or missing JWT');
             return NextResponse.json(
-                { error: 'Invalid signature' },
+                { error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
-        // Parse payload
-        const payload: CallbackPayload = JSON.parse(rawBody);
+        const payload: CallbackPayload = await request.json();
 
-        // Validate required fields
         if (!payload.job_id || !payload.status) {
             return NextResponse.json(
                 { error: 'Missing required fields: job_id, status' },
@@ -75,7 +57,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update job status
         const updateData: Record<string, unknown> = {
             status: payload.status,
         };
@@ -101,37 +82,32 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Update runner status (heartbeat/activity)
-        if (payload.runner_name) {
-            const runnerStatus = payload.status === 'running' ? 'busy' : 'online';
-            const currentJobId = payload.status === 'running' ? payload.job_id : null;
+        const runnerName = payload.runner_name || runner.runnerName;
+        const runnerStatus = payload.status === 'running' ? 'busy' : 'online';
+        const currentJobId = payload.status === 'running' ? payload.job_id : null;
 
-            await getSupabaseAdmin()
-                .from('scraper_runners')
-                .upsert({
-                    name: payload.runner_name,
-                    status: runnerStatus,
-                    last_seen_at: new Date().toISOString(),
-                    current_job_id: currentJobId,
-                    metadata: { last_ip: request.headers.get('x-forwarded-for') || 'unknown' }
-                }, { onConflict: 'name' });
-        }
+        await getSupabaseAdmin()
+            .from('scraper_runners')
+            .update({
+                status: runnerStatus,
+                last_seen_at: new Date().toISOString(),
+                current_job_id: currentJobId,
+                metadata: { last_ip: request.headers.get('x-forwarded-for') || 'unknown' }
+            })
+            .eq('name', runnerName);
 
-        // If completed with results, update product sources and status
         if (payload.status === 'completed' && payload.results?.data) {
             const skus = Object.keys(payload.results.data);
 
             for (const sku of skus) {
                 const scrapedData = payload.results.data[sku];
 
-                // Get current product to merge sources
                 const { data: product } = await getSupabaseAdmin()
                     .from('products_ingestion')
                     .select('sources')
                     .eq('sku', sku)
                     .single();
 
-                // Merge new scraped data with existing sources
                 const existingSources = (product?.sources as Record<string, unknown>) || {};
                 const updatedSources = {
                     ...existingSources,
@@ -139,7 +115,6 @@ export async function POST(request: NextRequest) {
                     _last_scraped: new Date().toISOString(),
                 };
 
-                // Update product with scraped data and move to 'scraped' status
                 const { error: productError } = await getSupabaseAdmin()
                     .from('products_ingestion')
                     .update({
@@ -157,13 +132,12 @@ export async function POST(request: NextRequest) {
             console.log(`[Callback] Updated ${skus.length} products with scraped data`);
         }
 
-        // Store results in scrape_results table for audit
         if (payload.status === 'completed' && payload.results) {
             const { error: insertError } = await getSupabaseAdmin()
                 .from('scrape_results')
                 .insert({
                     job_id: payload.job_id,
-                    runner_name: payload.runner_name || 'unknown',
+                    runner_name: runnerName,
                     data: payload.results,
                 });
 
@@ -172,7 +146,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        console.log(`[Callback] Job ${payload.job_id} updated to ${payload.status}`);
+        console.log(`[Callback] Job ${payload.job_id} updated to ${payload.status} by ${runnerName}`);
 
         return NextResponse.json({ success: true });
     } catch (error) {

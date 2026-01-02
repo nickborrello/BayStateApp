@@ -1,54 +1,71 @@
-import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 
-/**
- * Webhook secret for validating requests from scraper runners.
- * This should be set in environment variables.
- */
-const WEBHOOK_SECRET = process.env.SCRAPER_WEBHOOK_SECRET;
-
-/**
- * Validates the HMAC-SHA256 signature from a runner.
- * Uses timing-safe comparison to prevent timing attacks.
- * 
- * @param payload - The raw request body or message to validate
- * @param signature - The signature from X-Webhook-Signature header
- * @returns true if signature is valid, false otherwise
- */
-export function validateSignature(payload: string, signature: string | null): boolean {
-    if (!WEBHOOK_SECRET || !signature) {
-        return false;
-    }
-
-    const expectedSignature = crypto
-        .createHmac('sha256', WEBHOOK_SECRET)
-        .update(payload)
-        .digest('hex');
-
-    // Use timing-safe comparison to prevent timing attacks
-    const signatureBuffer = Buffer.from(signature, 'hex');
-    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
-
-    if (signatureBuffer.length !== expectedBuffer.length) {
-        return false;
-    }
-
-    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
+export interface RunnerAuthResult {
+    userId: string;
+    runnerName: string;
+    runnerId: string;
 }
 
-/**
- * Creates an HMAC-SHA256 signature for a payload.
- * Used for testing and by the coordinator when calling runners.
- * 
- * @param payload - The message to sign
- * @returns The hex-encoded signature
- */
-export function createSignature(payload: string): string {
-    if (!WEBHOOK_SECRET) {
-        throw new Error('SCRAPER_WEBHOOK_SECRET not configured');
+function getSupabaseAdmin() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+        throw new Error('Missing Supabase configuration');
     }
-    
-    return crypto
-        .createHmac('sha256', WEBHOOK_SECRET)
-        .update(payload)
-        .digest('hex');
+    return createClient(url, key);
+}
+
+export async function validateRunnerJWT(
+    authHeader: string | null
+): Promise<RunnerAuthResult | null> {
+    if (!authHeader?.startsWith('Bearer ')) {
+        return null;
+    }
+
+    const token = authHeader.slice(7);
+    if (!token) {
+        return null;
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('[Runner Auth] Missing Supabase configuration');
+        return null;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        console.error('[Runner Auth] Invalid token:', userError?.message);
+        return null;
+    }
+
+    const adminClient = getSupabaseAdmin();
+    const { data: runner, error: runnerError } = await adminClient
+        .from('scraper_runners')
+        .select('name')
+        .eq('auth_user_id', user.id)
+        .single();
+
+    if (runnerError || !runner) {
+        console.error('[Runner Auth] No runner linked to user:', user.id);
+        return null;
+    }
+
+    await adminClient
+        .from('scraper_runners')
+        .update({ last_auth_at: new Date().toISOString() })
+        .eq('auth_user_id', user.id);
+
+    return {
+        userId: user.id,
+        runnerName: runner.name,
+        runnerId: runner.name,
+    };
 }
