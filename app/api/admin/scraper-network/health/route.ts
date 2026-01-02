@@ -53,7 +53,16 @@ export async function GET() {
     checks.push({
         name: 'Runner Auth',
         status: 'ok',
-        message: 'JWT authentication via Supabase Auth',
+        message: 'API Key authentication (X-API-Key header)',
+    });
+
+    const hasWebhookSecret = !!process.env.SCRAPER_WEBHOOK_SECRET;
+    checks.push({
+        name: 'Webhook Secret',
+        status: hasWebhookSecret ? 'ok' : 'warning',
+        message: hasWebhookSecret 
+            ? 'HMAC fallback configured' 
+            : 'SCRAPER_WEBHOOK_SECRET not set (HMAC fallback disabled)',
     });
 
     try {

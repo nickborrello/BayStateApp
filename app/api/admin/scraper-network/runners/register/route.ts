@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { validateRunnerAuth } from '@/lib/scraper-auth';
 
 export const dynamic = 'force-dynamic';
+
+function getSupabaseAdmin(): SupabaseClient {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+        throw new Error('Missing Supabase configuration');
+    }
+    return createClient(url, key);
+}
 
 /**
  * POST /api/admin/scraper-network/runners/register
@@ -9,15 +19,18 @@ export const dynamic = 'force-dynamic';
  * Registers a new runner or updates an existing one.
  * Called by the runner CLI during setup to verify credentials
  * and register the runner with the coordinator.
+ * 
+ * Supports API Key authentication (preferred) or legacy JWT.
  */
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient();
-        
-        // Get the authenticated user from the JWT
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
+        // Validate authentication using unified auth function
+        const runner = await validateRunnerAuth({
+            apiKey: request.headers.get('X-API-Key'),
+            authorization: request.headers.get('Authorization'),
+        });
+
+        if (!runner) {
             return NextResponse.json(
                 { error: 'Unauthorized - invalid or missing authentication' },
                 { status: 401 }
@@ -34,19 +47,20 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const supabase = getSupabaseAdmin();
+
         // Upsert the runner record
-        const { data: runner, error: upsertError } = await supabase
+        const { data: runnerRecord, error: upsertError } = await supabase
             .from('scraper_runners')
             .upsert(
                 {
                     name: runner_name,
-                    user_id: user.id,
                     last_seen_at: new Date().toISOString(),
                     status: 'online',
                     metadata: {
                         ...metadata,
                         registered_at: new Date().toISOString(),
-                        email: user.email,
+                        auth_method: runner.authMethod,
                     },
                 },
                 {
@@ -65,12 +79,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        console.log(`[Runner Register] Runner '${runner_name}' registered via ${runner.authMethod}`);
+
         return NextResponse.json({
             success: true,
             runner: {
-                name: runner.name,
-                status: runner.status,
-                registered_at: runner.metadata?.registered_at,
+                name: runnerRecord.name,
+                status: runnerRecord.status,
+                registered_at: runnerRecord.metadata?.registered_at,
             },
             message: `Runner '${runner_name}' registered successfully`,
         });
@@ -89,13 +105,15 @@ export async function POST(request: NextRequest) {
  * Validates runner credentials without registering.
  * Used by CLI to test authentication.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const supabase = await createClient();
-        
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !user) {
+        // Validate authentication using unified auth function
+        const runner = await validateRunnerAuth({
+            apiKey: request.headers.get('X-API-Key'),
+            authorization: request.headers.get('Authorization'),
+        });
+
+        if (!runner) {
             return NextResponse.json(
                 { valid: false, error: 'Invalid credentials' },
                 { status: 401 }
@@ -104,8 +122,8 @@ export async function GET() {
 
         return NextResponse.json({
             valid: true,
-            user_id: user.id,
-            email: user.email,
+            runner_name: runner.runnerName,
+            auth_method: runner.authMethod,
         });
     } catch (error) {
         console.error('[Runner Register] Validation error:', error);

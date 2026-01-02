@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { validateRunnerJWT } from '@/lib/scraper-auth';
+import { validateRunnerAuth } from '@/lib/scraper-auth';
 
 function getSupabaseAdmin(): SupabaseClient {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,14 +31,21 @@ interface JobConfigResponse {
 
 export async function GET(request: NextRequest) {
     try {
-        const runner = await validateRunnerJWT(request.headers.get('Authorization'));
+        // Validate authentication using unified auth function
+        const runner = await validateRunnerAuth({
+            apiKey: request.headers.get('X-API-Key'),
+            authorization: request.headers.get('Authorization'),
+        });
+
         if (!runner) {
-            console.error('[Scraper API] Invalid or missing JWT');
+            console.error('[Scraper API] Authentication failed');
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             );
         }
+
+        console.log(`[Scraper API] Authenticated via ${runner.authMethod}: ${runner.runnerName}`);
 
         const { searchParams } = new URL(request.url);
         const jobId = searchParams.get('job_id');
@@ -52,6 +59,7 @@ export async function GET(request: NextRequest) {
 
         const supabase = getSupabaseAdmin();
 
+        // Fetch job details
         const { data: job, error: jobError } = await supabase
             .from('scrape_jobs')
             .select('*')
@@ -66,6 +74,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // Fetch scraper configurations
         let scraperQuery = supabase
             .from('scrapers')
             .select('*')
@@ -85,6 +94,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // Get SKUs (from job or default to staging products)
         let skus: string[] = job.skus || [];
         if (skus.length === 0) {
             const { data: stagingProducts } = await supabase

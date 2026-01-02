@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { validateRunnerJWT } from '@/lib/scraper-auth';
+import { validateRunnerAuth } from '@/lib/scraper-auth';
 
 function getSupabaseAdmin(): SupabaseClient {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,16 +39,39 @@ interface CallbackPayload {
 
 export async function POST(request: NextRequest) {
     try {
-        const runner = await validateRunnerJWT(request.headers.get('Authorization'));
+        // Read body as text first for HMAC validation
+        const bodyText = await request.text();
+        let payload: CallbackPayload;
+        
+        try {
+            payload = JSON.parse(bodyText);
+        } catch {
+            return NextResponse.json(
+                { error: 'Invalid JSON payload' },
+                { status: 400 }
+            );
+        }
+
+        // Validate authentication using unified auth function
+        const runner = await validateRunnerAuth(
+            {
+                apiKey: request.headers.get('X-API-Key'),
+                authorization: request.headers.get('Authorization'),
+                webhookSignature: request.headers.get('X-Webhook-Signature'),
+            },
+            bodyText,
+            payload.runner_name
+        );
+
         if (!runner) {
-            console.error('[Callback] Invalid or missing JWT');
+            console.error('[Callback] Authentication failed - no valid credentials');
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
-        const payload: CallbackPayload = await request.json();
+        console.log(`[Callback] Authenticated via ${runner.authMethod}: ${runner.runnerName}`);
 
         if (!payload.job_id || !payload.status) {
             return NextResponse.json(
@@ -57,6 +80,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const supabase = getSupabaseAdmin();
+
+        // Update job status
         const updateData: Record<string, unknown> = {
             status: payload.status,
         };
@@ -69,7 +95,7 @@ export async function POST(request: NextRequest) {
             updateData.error_message = payload.error_message;
         }
 
-        const { error: updateError } = await getSupabaseAdmin()
+        const { error: updateError } = await supabase
             .from('scrape_jobs')
             .update(updateData)
             .eq('id', payload.job_id);
@@ -82,27 +108,32 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Update runner status
         const runnerName = payload.runner_name || runner.runnerName;
         const runnerStatus = payload.status === 'running' ? 'busy' : 'online';
         const currentJobId = payload.status === 'running' ? payload.job_id : null;
 
-        await getSupabaseAdmin()
+        await supabase
             .from('scraper_runners')
             .update({
                 status: runnerStatus,
                 last_seen_at: new Date().toISOString(),
                 current_job_id: currentJobId,
-                metadata: { last_ip: request.headers.get('x-forwarded-for') || 'unknown' }
+                metadata: { 
+                    last_ip: request.headers.get('x-forwarded-for') || 'unknown',
+                    auth_method: runner.authMethod,
+                }
             })
             .eq('name', runnerName);
 
+        // Process scraped data if job completed successfully
         if (payload.status === 'completed' && payload.results?.data) {
             const skus = Object.keys(payload.results.data);
 
             for (const sku of skus) {
                 const scrapedData = payload.results.data[sku];
 
-                const { data: product } = await getSupabaseAdmin()
+                const { data: product } = await supabase
                     .from('products_ingestion')
                     .select('sources')
                     .eq('sku', sku)
@@ -115,7 +146,7 @@ export async function POST(request: NextRequest) {
                     _last_scraped: new Date().toISOString(),
                 };
 
-                const { error: productError } = await getSupabaseAdmin()
+                const { error: productError } = await supabase
                     .from('products_ingestion')
                     .update({
                         sources: updatedSources,
@@ -132,8 +163,9 @@ export async function POST(request: NextRequest) {
             console.log(`[Callback] Updated ${skus.length} products with scraped data`);
         }
 
+        // Store full results for audit/debugging
         if (payload.status === 'completed' && payload.results) {
-            const { error: insertError } = await getSupabaseAdmin()
+            const { error: insertError } = await supabase
                 .from('scrape_results')
                 .insert({
                     job_id: payload.job_id,

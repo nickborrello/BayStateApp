@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import crypto from 'crypto';
+import { generateAPIKey } from '@/lib/scraper-auth';
 
 function getSupabaseAdmin(): SupabaseClient {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -32,16 +32,17 @@ async function getAuthenticatedUser() {
     return user;
 }
 
-function generatePassword(length = 24): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    const bytes = crypto.randomBytes(length);
-    return Array.from(bytes).map(b => chars[b % chars.length]).join('');
-}
-
-interface CreateRunnerRequest {
+interface CreateKeyRequest {
     runner_name: string;
+    description?: string;
+    expires_in_days?: number;
 }
 
+/**
+ * GET /api/admin/runners/accounts
+ * 
+ * Lists all runners with their API key information (not the actual keys).
+ */
 export async function GET() {
     const user = await getAuthenticatedUser();
     if (!user) {
@@ -50,50 +51,60 @@ export async function GET() {
 
     const admin = getSupabaseAdmin();
 
-    const { data: runners, error } = await admin
+    // Get all runners
+    const { data: runners, error: runnersError } = await admin
         .from('scraper_runners')
         .select(`
             name,
             status,
             last_seen_at,
-            last_auth_at,
-            auth_user_id,
             current_job_id,
             metadata,
             created_at
         `)
         .order('created_at', { ascending: false });
 
-    if (error) {
-        console.error('[Runner Accounts] Failed to fetch runners:', error);
+    if (runnersError) {
+        console.error('[Runner Accounts] Failed to fetch runners:', runnersError);
         return NextResponse.json({ error: 'Failed to fetch runners' }, { status: 500 });
     }
 
-    const runnersWithAuthInfo = await Promise.all(
+    // Get API keys for each runner (metadata only, not the actual keys)
+    const runnersWithKeys = await Promise.all(
         (runners || []).map(async (runner) => {
-            let email: string | null = null;
-            if (runner.auth_user_id) {
-                const { data: authUser } = await admin.auth.admin.getUserById(runner.auth_user_id);
-                email = authUser?.user?.email || null;
-            }
+            const { data: keys } = await admin
+                .from('runner_api_keys')
+                .select('id, key_prefix, description, created_at, expires_at, last_used_at, revoked_at')
+                .eq('runner_name', runner.name)
+                .order('created_at', { ascending: false });
+
+            const activeKeys = (keys || []).filter(k => !k.revoked_at);
+            const hasActiveKey = activeKeys.length > 0;
+
             return {
                 ...runner,
-                email,
-                has_credentials: !!runner.auth_user_id,
+                api_keys: keys || [],
+                has_active_key: hasActiveKey,
+                active_key_count: activeKeys.length,
             };
         })
     );
 
-    return NextResponse.json({ runners: runnersWithAuthInfo });
+    return NextResponse.json({ runners: runnersWithKeys });
 }
 
+/**
+ * POST /api/admin/runners/accounts
+ * 
+ * Creates a new API key for a runner. Returns the full key (only shown once).
+ */
 export async function POST(request: NextRequest) {
     const user = await getAuthenticatedUser();
     if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body: CreateRunnerRequest = await request.json();
+    const body: CreateKeyRequest = await request.json();
     
     if (!body.runner_name || typeof body.runner_name !== 'string') {
         return NextResponse.json({ error: 'runner_name is required' }, { status: 400 });
@@ -106,56 +117,73 @@ export async function POST(request: NextRequest) {
 
     const admin = getSupabaseAdmin();
 
-    const { data: existing } = await admin
+    // Ensure runner exists (create if not)
+    const { data: existingRunner } = await admin
         .from('scraper_runners')
-        .select('name, auth_user_id')
+        .select('name')
         .eq('name', runnerName)
         .single();
 
-    if (existing?.auth_user_id) {
-        return NextResponse.json({ error: 'Runner already has credentials. Delete first to regenerate.' }, { status: 409 });
+    if (!existingRunner) {
+        // Create the runner record
+        const { error: createError } = await admin
+            .from('scraper_runners')
+            .insert({
+                name: runnerName,
+                status: 'offline',
+                created_at: new Date().toISOString(),
+            });
+
+        if (createError) {
+            console.error('[Runner Accounts] Failed to create runner:', createError);
+            return NextResponse.json({ error: 'Failed to create runner' }, { status: 500 });
+        }
     }
 
-    const email = `runner-${runnerName}@scraper.local`;
-    const password = generatePassword();
+    // Generate new API key
+    const { key, hash, prefix } = generateAPIKey();
 
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { runner_name: runnerName, type: 'scraper_runner' }
-    });
-
-    if (authError) {
-        console.error('[Runner Accounts] Failed to create auth user:', authError);
-        return NextResponse.json({ error: `Failed to create credentials: ${authError.message}` }, { status: 500 });
+    // Calculate expiry if specified
+    let expiresAt: string | null = null;
+    if (body.expires_in_days && body.expires_in_days > 0) {
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + body.expires_in_days);
+        expiresAt = expiry.toISOString();
     }
 
-    const { error: upsertError } = await admin
-        .from('scraper_runners')
-        .upsert({
-            name: runnerName,
-            auth_user_id: authData.user.id,
-            status: 'offline',
-            created_at: existing ? undefined : new Date().toISOString(),
-        }, { onConflict: 'name' });
+    // Insert the key
+    const { error: insertError } = await admin
+        .from('runner_api_keys')
+        .insert({
+            runner_name: runnerName,
+            key_hash: hash,
+            key_prefix: prefix,
+            description: body.description || 'API Key',
+            expires_at: expiresAt,
+            created_by: user.id,
+        });
 
-    if (upsertError) {
-        console.error('[Runner Accounts] Failed to link runner:', upsertError);
-        await admin.auth.admin.deleteUser(authData.user.id);
-        return NextResponse.json({ error: 'Failed to link runner account' }, { status: 500 });
+    if (insertError) {
+        console.error('[Runner Accounts] Failed to create API key:', insertError);
+        return NextResponse.json({ error: 'Failed to create API key' }, { status: 500 });
     }
 
-    console.log(`[Runner Accounts] Created credentials for runner: ${runnerName}`);
+    console.log(`[Runner Accounts] Created API key for runner: ${runnerName} (prefix: ${prefix})`);
 
     return NextResponse.json({
         runner_name: runnerName,
-        email,
-        password,
-        message: 'Save these credentials now. The password cannot be retrieved again.',
+        api_key: key,
+        key_prefix: prefix,
+        expires_at: expiresAt,
+        message: 'Save this API key now. It cannot be retrieved again.',
     });
 }
 
+/**
+ * DELETE /api/admin/runners/accounts
+ * 
+ * Revokes an API key. Supports revoking by key_id or all keys for a runner.
+ */
 export async function DELETE(request: NextRequest) {
     const user = await getAuthenticatedUser();
     if (!user) {
@@ -163,42 +191,58 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const keyId = searchParams.get('key_id');
     const runnerName = searchParams.get('runner_name');
+    const revokeAll = searchParams.get('revoke_all') === 'true';
 
-    if (!runnerName) {
-        return NextResponse.json({ error: 'runner_name query parameter required' }, { status: 400 });
+    if (!keyId && !runnerName) {
+        return NextResponse.json(
+            { error: 'Either key_id or runner_name query parameter required' },
+            { status: 400 }
+        );
     }
 
     const admin = getSupabaseAdmin();
 
-    const { data: runner, error: fetchError } = await admin
-        .from('scraper_runners')
-        .select('auth_user_id')
-        .eq('name', runnerName)
-        .single();
+    if (keyId) {
+        // Revoke specific key
+        const { error } = await admin
+            .from('runner_api_keys')
+            .update({ revoked_at: new Date().toISOString() })
+            .eq('id', keyId)
+            .is('revoked_at', null);
 
-    if (fetchError || !runner) {
-        return NextResponse.json({ error: 'Runner not found' }, { status: 404 });
-    }
-
-    if (runner.auth_user_id) {
-        const { error: deleteAuthError } = await admin.auth.admin.deleteUser(runner.auth_user_id);
-        if (deleteAuthError) {
-            console.error('[Runner Accounts] Failed to delete auth user:', deleteAuthError);
+        if (error) {
+            console.error('[Runner Accounts] Failed to revoke key:', error);
+            return NextResponse.json({ error: 'Failed to revoke key' }, { status: 500 });
         }
+
+        console.log(`[Runner Accounts] Revoked API key: ${keyId}`);
+        return NextResponse.json({ success: true, message: 'API key revoked' });
     }
 
-    const { error: updateError } = await admin
-        .from('scraper_runners')
-        .update({ auth_user_id: null, last_auth_at: null })
-        .eq('name', runnerName);
+    if (runnerName && revokeAll) {
+        // Revoke all keys for a runner
+        const { error, count } = await admin
+            .from('runner_api_keys')
+            .update({ revoked_at: new Date().toISOString() })
+            .eq('runner_name', runnerName)
+            .is('revoked_at', null);
 
-    if (updateError) {
-        console.error('[Runner Accounts] Failed to unlink runner:', updateError);
-        return NextResponse.json({ error: 'Failed to remove credentials' }, { status: 500 });
+        if (error) {
+            console.error('[Runner Accounts] Failed to revoke keys:', error);
+            return NextResponse.json({ error: 'Failed to revoke keys' }, { status: 500 });
+        }
+
+        console.log(`[Runner Accounts] Revoked ${count || 0} API keys for runner: ${runnerName}`);
+        return NextResponse.json({ 
+            success: true, 
+            message: `Revoked ${count || 0} API key(s) for ${runnerName}` 
+        });
     }
 
-    console.log(`[Runner Accounts] Deleted credentials for runner: ${runnerName}`);
-
-    return NextResponse.json({ success: true, message: `Credentials removed for ${runnerName}` });
+    return NextResponse.json(
+        { error: 'Use revoke_all=true to revoke all keys for a runner' },
+        { status: 400 }
+    );
 }

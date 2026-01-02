@@ -11,8 +11,6 @@ interface RunnerAccount {
     status: 'online' | 'offline' | 'busy';
     last_seen_at: string | null;
     last_auth_at: string | null;
-    auth_user_id: string | null;
-    email: string | null;
     has_credentials: boolean;
     current_job_id: string | null;
     created_at: string;
@@ -120,7 +118,7 @@ export function RunnerAccounts() {
                     <Key className="mx-auto h-12 w-12 text-gray-400" />
                     <h4 className="mt-4 text-lg font-medium text-gray-900">No Runner Accounts</h4>
                     <p className="mt-2 text-sm text-gray-500">
-                        Create accounts to allow runners to authenticate via JWT.
+                        Create API keys to allow runners to authenticate.
                     </p>
                     <Button className="mt-4" onClick={() => setShowModal(true)}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -162,7 +160,7 @@ export function RunnerAccounts() {
                                             <div>
                                                 <div className="font-medium text-gray-900">{runner.name}</div>
                                                 <div className="text-xs text-gray-500 font-mono">
-                                                    {runner.email || 'No credentials'}
+                                                    {runner.has_credentials ? 'API key configured' : 'No API key'}
                                                 </div>
                                             </div>
                                         </div>

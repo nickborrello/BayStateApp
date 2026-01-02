@@ -14,8 +14,7 @@ interface RunnerAccountModalProps {
 
 interface CreatedCredentials {
     runner_name: string;
-    email: string;
-    password: string;
+    api_key: string;
 }
 
 export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps) {
@@ -23,7 +22,7 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [credentials, setCredentials] = useState<CreatedCredentials | null>(null);
-    const [copied, setCopied] = useState<'email' | 'password' | 'all' | null>(null);
+    const [copied, setCopied] = useState<'key' | 'env' | null>(null);
 
     const handleKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -58,13 +57,13 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || 'Failed to create account');
+                throw new Error(data.error || 'Failed to create API key');
             }
 
             setCredentials(data);
             onSave();
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to create account';
+            const message = err instanceof Error ? err.message : 'Failed to create API key';
             setError(message);
             toast.error(message);
         } finally {
@@ -72,16 +71,16 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
         }
     };
 
-    const copyToClipboard = async (text: string, field: 'email' | 'password' | 'all') => {
+    const copyToClipboard = async (text: string, field: 'key' | 'env') => {
         await navigator.clipboard.writeText(text);
         setCopied(field);
         setTimeout(() => setCopied(null), 2000);
     };
 
-    const copyAllCredentials = () => {
+    const copyAsEnvVar = () => {
         if (!credentials) return;
-        const text = `RUNNER_EMAIL=${credentials.email}\nRUNNER_PASSWORD=${credentials.password}`;
-        copyToClipboard(text, 'all');
+        const text = `SCRAPER_API_KEY=${credentials.api_key}`;
+        copyToClipboard(text, 'env');
     };
 
     if (credentials) {
@@ -92,7 +91,7 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                         <div className="flex items-center gap-3">
                             <Key className="h-6 w-6 text-green-600" />
                             <div>
-                                <h2 className="text-lg font-semibold">Credentials Created</h2>
+                                <h2 className="text-lg font-semibold">API Key Created</h2>
                                 <p className="text-sm text-gray-500">{credentials.runner_name}</p>
                             </div>
                         </div>
@@ -100,39 +99,28 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
 
                     <div className="p-6 space-y-4">
                         <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
-                            <strong>Save these credentials now.</strong> The password cannot be retrieved again.
+                            <strong>Save this API key now.</strong> It cannot be retrieved again. If lost, you must revoke and create a new key.
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Email</Label>
+                            <Label>API Key</Label>
                             <div className="flex gap-2">
-                                <Input value={credentials.email} readOnly className="font-mono text-sm" />
+                                <Input value={credentials.api_key} readOnly className="font-mono text-sm" />
                                 <Button
                                     variant="outline"
                                     size="icon"
-                                    onClick={() => copyToClipboard(credentials.email, 'email')}
+                                    onClick={() => copyToClipboard(credentials.api_key, 'key')}
                                 >
-                                    {copied === 'email' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                                    {copied === 'key' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
                                 </Button>
                             </div>
+                            <p className="text-xs text-gray-500">
+                                Keys start with <code className="bg-gray-100 px-1 rounded">bsr_</code> for easy identification.
+                            </p>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Password</Label>
-                            <div className="flex gap-2">
-                                <Input value={credentials.password} readOnly className="font-mono text-sm" />
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => copyToClipboard(credentials.password, 'password')}
-                                >
-                                    {copied === 'password' ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-
-                        <Button variant="outline" className="w-full" onClick={copyAllCredentials}>
-                            {copied === 'all' ? (
+                        <Button variant="outline" className="w-full" onClick={copyAsEnvVar}>
+                            {copied === 'env' ? (
                                 <>
                                     <Check className="mr-2 h-4 w-4 text-green-600" />
                                     Copied!
@@ -140,7 +128,7 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                             ) : (
                                 <>
                                     <Copy className="mr-2 h-4 w-4" />
-                                    Copy as Environment Variables
+                                    Copy as Environment Variable
                                 </>
                             )}
                         </Button>
@@ -148,10 +136,10 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                         <div className="pt-4 border-t space-y-3">
                             <h4 className="text-sm font-semibold text-gray-900">Next Steps:</h4>
                             <ul className="text-sm text-gray-600 space-y-2 list-disc ml-5">
-                                <li>Copy the credentials above and save them securely.</li>
-                                <li>Update your runner&apos;s <code>.env</code> file or export them.</li>
-                                <li>Restart your runner container.</li>
-                                <li>The runner will appear as <strong>Online</strong> once it authenticates.</li>
+                                <li>Copy the API key above and save it securely.</li>
+                                <li>Add <code className="bg-gray-100 px-1 rounded">SCRAPER_API_KEY</code> to your GitHub repository secrets.</li>
+                                <li>The runner will authenticate automatically when it starts.</li>
+                                <li>The runner will appear as <strong>Online</strong> once connected.</li>
                             </ul>
                         </div>
                     </div>
@@ -172,7 +160,7 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                 <div className="flex items-center justify-between border-b px-6 py-4">
                     <div className="flex items-center gap-3">
                         <Key className="h-6 w-6 text-purple-600" />
-                        <h2 className="text-lg font-semibold">Create Runner Account</h2>
+                        <h2 className="text-lg font-semibold">Create Runner API Key</h2>
                     </div>
                     <button onClick={onClose} className="rounded-full p-2 hover:bg-gray-100">
                         <X className="h-5 w-5" />
@@ -199,6 +187,14 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                             Lowercase letters, numbers, and hyphens only. 3-50 characters.
                         </p>
                     </div>
+
+                    <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+                        <strong>API Key Authentication</strong>
+                        <p className="mt-1">
+                            Each runner gets a unique API key. Keys are hashed before storage - 
+                            we never store the raw key, so save it immediately after creation.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 border-t bg-gray-50 px-6 py-4">
@@ -207,7 +203,7 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                     </Button>
                     <Button onClick={handleCreate} disabled={saving || !runnerName.trim()}>
                         <Key className="mr-2 h-4 w-4" />
-                        {saving ? 'Creating...' : 'Generate Credentials'}
+                        {saving ? 'Creating...' : 'Generate API Key'}
                     </Button>
                 </div>
             </div>
