@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
                     status: runnerStatus,
                     last_seen_at: new Date().toISOString(),
                     current_job_id: currentJobId,
-                    metadata: { last_ip: request.ip }
+                    metadata: { last_ip: request.headers.get('x-forwarded-for') || 'unknown' }
                 }, { onConflict: 'name' });
         }
 
