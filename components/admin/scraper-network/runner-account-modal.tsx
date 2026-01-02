@@ -62,7 +62,6 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
             }
 
             setCredentials(data);
-            toast.success('Runner account created');
             onSave();
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to create account';
@@ -145,6 +144,16 @@ export function RunnerAccountModal({ onClose, onSave }: RunnerAccountModalProps)
                                 </>
                             )}
                         </Button>
+
+                        <div className="pt-4 border-t space-y-3">
+                            <h4 className="text-sm font-semibold text-gray-900">Next Steps:</h4>
+                            <ul className="text-sm text-gray-600 space-y-2 list-disc ml-5">
+                                <li>Copy the credentials above and save them securely.</li>
+                                <li>Update your runner's <code>.env</code> file or export them.</li>
+                                <li>Restart your runner container.</li>
+                                <li>The runner will appear as <strong>Online</strong> once it authenticates.</li>
+                            </ul>
+                        </div>
                     </div>
 
                     <div className="border-t bg-gray-50 px-6 py-4">

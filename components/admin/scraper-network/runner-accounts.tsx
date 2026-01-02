@@ -25,9 +25,9 @@ export function RunnerAccounts() {
     const [showModal, setShowModal] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
 
-    const fetchRunners = async () => {
+    const fetchRunners = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent && runners.length === 0) setLoading(true);
             const res = await fetch('/api/admin/runners/accounts');
             if (!res.ok) throw new Error('Failed to fetch runners');
             const data = await res.json();
@@ -36,7 +36,7 @@ export function RunnerAccounts() {
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -169,13 +169,12 @@ export function RunnerAccounts() {
                                     </td>
                                     <td className="whitespace-nowrap px-4 py-3">
                                         <span
-                                            className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                                                runner.status === 'online'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : runner.status === 'busy'
-                                                        ? 'bg-yellow-100 text-yellow-800'
-                                                        : 'bg-gray-100 text-gray-800'
-                                            }`}
+                                            className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${runner.status === 'online'
+                                                ? 'bg-green-100 text-green-800'
+                                                : runner.status === 'busy'
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : 'bg-gray-100 text-gray-800'
+                                                }`}
                                         >
                                             {runner.status}
                                         </span>
@@ -213,7 +212,7 @@ export function RunnerAccounts() {
             {showModal && (
                 <RunnerAccountModal
                     onClose={() => setShowModal(false)}
-                    onSave={fetchRunners}
+                    onSave={() => fetchRunners(true)}
                 />
             )}
         </div>
