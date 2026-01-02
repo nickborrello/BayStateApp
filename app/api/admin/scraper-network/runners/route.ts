@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
-
-function getSupabaseAdmin() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    return createClient(url, key);
-}
 
 interface RunnerData {
     name: string;
@@ -19,7 +13,7 @@ interface RunnerData {
 
 export async function GET() {
     try {
-        const supabase = getSupabaseAdmin();
+        const supabase = await createClient();
         const { data: runnersData, error } = await supabase
             .from('scraper_runners')
             .select('*')
