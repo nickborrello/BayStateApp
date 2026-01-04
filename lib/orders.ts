@@ -153,6 +153,55 @@ export async function getOrders(options?: {
 
   query = query.order('created_at', { ascending: false });
 
+  if (options?.limit && options.limit > 1000) {
+    const finalLimit = options.limit;
+    const initialOffset = options.offset || 0;
+    let allData: Order[] = [];
+    let currentOffset = initialOffset;
+    const PAGE_SIZE = 1000;
+
+    while (allData.length < finalLimit) {
+      const remaining = finalLimit - allData.length;
+      const currentLimit = Math.min(remaining, PAGE_SIZE);
+
+      let batchQuery = supabase
+        .from('orders')
+        .select('*', { count: 'exact' });
+
+      if (options?.status) {
+        batchQuery = batchQuery.eq('status', options.status);
+      }
+
+      batchQuery = batchQuery.order('created_at', { ascending: false });
+      batchQuery = batchQuery.range(currentOffset, currentOffset + currentLimit - 1);
+
+      const { data: batchData, error: batchError, count: batchCount } = await batchQuery;
+
+      if (batchError) {
+        console.error('Error fetching orders batch:', batchError);
+        return { orders: allData, count: batchCount || allData.length };
+      }
+
+      if (!batchData || batchData.length === 0) {
+        return { orders: allData, count: batchCount || allData.length };
+      }
+
+      allData.push(...(batchData as Order[]));
+      currentOffset += batchData.length;
+
+      if (batchData.length < currentLimit) {
+        return { orders: allData, count: batchCount || allData.length };
+      }
+    }
+
+    // Get the total count one last time if we didn't get it
+    const { count: finalCount } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+
+    return { orders: allData, count: finalCount || allData.length };
+  }
+
   if (options?.limit) {
     const offset = options.offset || 0;
     query = query.range(offset, offset + options.limit - 1);

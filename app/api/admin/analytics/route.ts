@@ -92,25 +92,42 @@ export async function GET(request: NextRequest) {
   const endIso = endDate.toISOString();
 
   try {
-    // Fetch orders in date range
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('id, status, total, created_at')
-      .gte('created_at', startIso)
-      .lte('created_at', endIso)
-      .order('created_at', { ascending: true })
-      .limit(10000);
+    // Fetch all orders in date range using pagination to bypass the 1000-row limit
+    let allOrders: any[] = [];
+    let page = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
 
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError);
-      return NextResponse.json(
-        { error: 'Failed to fetch orders' },
-        { status: 500 }
-      );
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('orders')
+        .select('id, status, total, created_at')
+        .gte('created_at', startIso)
+        .lte('created_at', endIso)
+        .order('created_at', { ascending: true })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+      if (batchError) {
+        console.error('Error fetching orders batch:', batchError);
+        return NextResponse.json(
+          { error: 'Failed to fetch orders' },
+          { status: 500 }
+        );
+      }
+
+      if (!batch || batch.length === 0) {
+        hasMore = false;
+      } else {
+        allOrders.push(...batch);
+        hasMore = batch.length === PAGE_SIZE;
+        page++;
+      }
+
+      // Safety cap to avoid infinite loops or extreme memory usage
+      if (allOrders.length >= 200000) break;
     }
 
-    // Calculate revenue metrics
-    const ordersList = orders || [];
+    const ordersList = allOrders;
     const totalRevenue = ordersList.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const orderCount = ordersList.length;
     const averageOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
@@ -160,17 +177,40 @@ export async function GET(request: NextRequest) {
     let topProducts: AnalyticsData['topProducts'] = [];
 
     if (true) {
-      const { data: items, error: itemsError } = await supabase
-        .from('order_items')
-        .select('item_name, quantity, total_price, orders!inner(created_at)')
-        .gte('orders.created_at', startIso)
-        .lte('orders.created_at', endIso)
-        .limit(50000);
+      let allItems: any[] = [];
+      let itemPage = 0;
+      const ITEM_PAGE_SIZE = 1000;
+      let itemsHasMore = true;
 
-      if (!itemsError && items) {
+      while (itemsHasMore) {
+        const { data: itemBatch, error: itemError } = await supabase
+          .from('order_items')
+          .select('item_name, quantity, total_price, orders!inner(created_at)')
+          .gte('orders.created_at', startIso)
+          .lte('orders.created_at', endIso)
+          .range(itemPage * ITEM_PAGE_SIZE, (itemPage + 1) * ITEM_PAGE_SIZE - 1);
+
+        if (itemError) {
+          console.error('Error fetching order items batch:', itemError);
+          break; // Stop fetching but proceed with what we have
+        }
+
+        if (!itemBatch || itemBatch.length === 0) {
+          itemsHasMore = false;
+        } else {
+          allItems.push(...itemBatch);
+          itemsHasMore = itemBatch.length === ITEM_PAGE_SIZE;
+          itemPage++;
+        }
+
+        // Safety cap for items
+        if (allItems.length >= 500000) break;
+      }
+
+      if (allItems.length > 0) {
         const productMap = new Map<string, { quantity: number; revenue: number }>();
 
-        for (const item of items) {
+        for (const item of allItems) {
           const name = item.item_name || 'Unknown';
           const existing = productMap.get(name) || { quantity: 0, revenue: 0 };
           productMap.set(name, {
