@@ -18,6 +18,9 @@ const orderSchema = z.object({
       imageUrl: z.string().nullable().optional(),
     })
   ),
+  promoCode: z.string().nullable().optional(),
+  promoCodeId: z.string().nullable().optional(),
+  discountAmount: z.number().optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,7 +35,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const order = await createOrder(validatedData);
+    const order = await createOrder({
+      customerName: validatedData.customerName,
+      customerEmail: validatedData.customerEmail,
+      customerPhone: validatedData.customerPhone,
+      notes: validatedData.notes,
+      items: validatedData.items,
+      promoCode: validatedData.promoCode,
+      promoCodeId: validatedData.promoCodeId,
+      discountAmount: validatedData.discountAmount,
+    });
 
     if (!order) {
       return NextResponse.json(

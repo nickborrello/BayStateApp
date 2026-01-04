@@ -10,23 +10,43 @@ export interface CartItem {
   imageUrl?: string | null;
 }
 
+export type DiscountType = 'percentage' | 'fixed_amount' | 'free_shipping';
+
+interface PromoState {
+  code: string | null;
+  discount: number;
+  discountType: DiscountType | null;
+  promoCodeId: string | null;
+}
+
 interface CartState {
   items: CartItem[];
+  promo: PromoState;
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   getItemCount: () => number;
   getSubtotal: () => number;
+  applyPromoCode: (code: string, discount: number, discountType: DiscountType, promoCodeId: string) => void;
+  clearPromoCode: () => void;
+  getDiscount: () => number;
+  getTotal: () => number;
+  hasFreeShipping: () => boolean;
 }
 
-/**
- * Cart store using Zustand with localStorage persistence.
- */
+const initialPromoState: PromoState = {
+  code: null,
+  discount: 0,
+  discountType: null,
+  promoCodeId: null,
+};
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      promo: initialPromoState,
 
       addItem: (item) => {
         set((state) => {
@@ -63,7 +83,7 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => {
-        set({ items: [] });
+        set({ items: [], promo: initialPromoState });
       },
 
       getItemCount: () => {
@@ -75,6 +95,38 @@ export const useCartStore = create<CartState>()(
           (sum, item) => sum + item.price * item.quantity,
           0
         );
+      },
+
+      applyPromoCode: (code, discount, discountType, promoCodeId) => {
+        set({
+          promo: {
+            code,
+            discount,
+            discountType,
+            promoCodeId,
+          },
+        });
+      },
+
+      clearPromoCode: () => {
+        set({ promo: initialPromoState });
+      },
+
+      getDiscount: () => {
+        const { promo } = get();
+        if (!promo.code) return 0;
+        return promo.discount;
+      },
+
+      getTotal: () => {
+        const subtotal = get().getSubtotal();
+        const discount = get().getDiscount();
+        return Math.max(0, subtotal - discount);
+      },
+
+      hasFreeShipping: () => {
+        const { promo } = get();
+        return promo.discountType === 'free_shipping';
       },
     }),
     {

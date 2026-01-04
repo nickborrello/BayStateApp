@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { type CartItem } from '@/lib/cart-store';
+import { recordPromoRedemption } from '@/lib/promo-codes';
 
 export interface OrderItem {
   id: string;
@@ -23,6 +24,9 @@ export interface Order {
   customer_phone: string | null;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   subtotal: number;
+  discount_amount: number;
+  promo_code: string | null;
+  promo_code_id: string | null;
   tax: number;
   total: number;
   notes: string | null;
@@ -37,11 +41,11 @@ export interface CreateOrderInput {
   customerPhone?: string;
   notes?: string;
   items: CartItem[];
+  promoCode?: string | null;
+  promoCodeId?: string | null;
+  discountAmount?: number;
 }
 
-/**
- * Creates a new order in the database.
- */
 export async function createOrder(input: CreateOrderInput): Promise<Order | null> {
   const supabase = await createClient();
 
@@ -49,10 +53,11 @@ export async function createOrder(input: CreateOrderInput): Promise<Order | null
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const tax = subtotal * 0.0625; // 6.25% MA sales tax
-  const total = subtotal + tax;
+  const discountAmount = input.discountAmount || 0;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const tax = discountedSubtotal * 0.0625;
+  const total = discountedSubtotal + tax;
 
-  // Create order
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
@@ -61,6 +66,9 @@ export async function createOrder(input: CreateOrderInput): Promise<Order | null
       customer_phone: input.customerPhone || null,
       notes: input.notes || null,
       subtotal,
+      discount_amount: discountAmount,
+      promo_code: input.promoCode || null,
+      promo_code_id: input.promoCodeId || null,
       tax,
       total,
     })
@@ -72,7 +80,6 @@ export async function createOrder(input: CreateOrderInput): Promise<Order | null
     return null;
   }
 
-  // Create order items
   const orderItems = input.items.map((item) => ({
     order_id: order.id,
     item_type: item.id.startsWith('service-') ? 'service' : 'product',
@@ -90,15 +97,21 @@ export async function createOrder(input: CreateOrderInput): Promise<Order | null
 
   if (itemsError) {
     console.error('Error creating order items:', itemsError);
-    // Order was created, but items failed - return order anyway
+  }
+
+  if (input.promoCodeId && discountAmount > 0) {
+    await recordPromoRedemption({
+      promoCodeId: input.promoCodeId,
+      orderId: order.id,
+      userId: order.user_id,
+      guestEmail: input.customerEmail,
+      discountApplied: discountAmount,
+    });
   }
 
   return order as Order;
 }
 
-/**
- * Fetches an order by ID.
- */
 export async function getOrderById(id: string): Promise<Order | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -115,9 +128,6 @@ export async function getOrderById(id: string): Promise<Order | null> {
   return data as Order;
 }
 
-/**
- * Fetches an order by order number.
- */
 export async function getOrderByNumber(orderNumber: string): Promise<Order | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -134,9 +144,6 @@ export async function getOrderByNumber(orderNumber: string): Promise<Order | nul
   return data as Order;
 }
 
-/**
- * Fetches all orders with optional filtering.
- */
 export async function getOrders(options?: {
   status?: string;
   limit?: number;
@@ -153,58 +160,11 @@ export async function getOrders(options?: {
 
   query = query.order('created_at', { ascending: false });
 
-  if (options?.limit && options.limit > 1000) {
-    const finalLimit = options.limit;
-    const initialOffset = options.offset || 0;
-    let allData: Order[] = [];
-    let currentOffset = initialOffset;
-    const PAGE_SIZE = 1000;
-
-    while (allData.length < finalLimit) {
-      const remaining = finalLimit - allData.length;
-      const currentLimit = Math.min(remaining, PAGE_SIZE);
-
-      let batchQuery = supabase
-        .from('orders')
-        .select('*', { count: 'exact' });
-
-      if (options?.status) {
-        batchQuery = batchQuery.eq('status', options.status);
-      }
-
-      batchQuery = batchQuery.order('created_at', { ascending: false });
-      batchQuery = batchQuery.range(currentOffset, currentOffset + currentLimit - 1);
-
-      const { data: batchData, error: batchError, count: batchCount } = await batchQuery;
-
-      if (batchError) {
-        console.error('Error fetching orders batch:', batchError);
-        return { orders: allData, count: batchCount || allData.length };
-      }
-
-      if (!batchData || batchData.length === 0) {
-        return { orders: allData, count: batchCount || allData.length };
-      }
-
-      allData.push(...(batchData as Order[]));
-      currentOffset += batchData.length;
-
-      if (batchData.length < currentLimit) {
-        return { orders: allData, count: batchCount || allData.length };
-      }
-    }
-
-    // Get the total count one last time if we didn't get it
-    const { count: finalCount } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true });
-
-    return { orders: allData, count: finalCount || allData.length };
-  }
-
   if (options?.limit) {
     const offset = options.offset || 0;
     query = query.range(offset, offset + options.limit - 1);
+  } else {
+    query = query.limit(500);
   }
 
   const { data, error, count } = await query;
@@ -217,9 +177,6 @@ export async function getOrders(options?: {
   return { orders: data as Order[] || [], count: count || 0 };
 }
 
-/**
- * Updates order status.
- */
 export async function updateOrderStatus(
   id: string,
   status: Order['status']

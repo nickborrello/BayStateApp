@@ -9,23 +9,51 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PromoCodeInput } from '@/components/storefront/promo-code-input';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore((state) => state.getSubtotal());
   const clearCart = useCartStore((state) => state.clearCart);
+  const promo = useCartStore((state) => state.promo);
+  const applyPromoCode = useCartStore((state) => state.applyPromoCode);
+  const clearPromoCode = useCartStore((state) => state.clearPromoCode);
+  const discount = useCartStore((state) => state.getDiscount());
+  const hasFreeShipping = useCartStore((state) => state.hasFreeShipping());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const tax = subtotal * 0.0625;
-  const total = subtotal + tax;
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+  const tax = discountedSubtotal * 0.0625;
+  const total = discountedSubtotal + tax;
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+
+  const handleApplyPromo = async (code: string) => {
+    try {
+      const response = await fetch('/api/promo/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal }),
+      });
+
+      const data = await response.json();
+
+      if (!data.valid) {
+        return { success: false, error: data.error };
+      }
+
+      applyPromoCode(data.code, data.discount, data.discountType, data.promoCodeId || '');
+      return { success: true, discount: data.discount };
+    } catch {
+      return { success: false, error: 'Failed to validate promo code' };
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,6 +67,9 @@ export default function CheckoutPage() {
       customerPhone: formData.get('phone') as string,
       notes: formData.get('notes') as string,
       items,
+      promoCode: promo.code,
+      promoCodeId: promo.promoCodeId,
+      discountAmount: discount,
     };
 
     try {
@@ -87,7 +118,6 @@ export default function CheckoutPage() {
       <h1 className="mb-8 text-3xl font-bold text-zinc-900">Checkout</h1>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Customer Information Form */}
         <div>
           <Card>
             <CardHeader>
@@ -167,7 +197,6 @@ export default function CheckoutPage() {
           </Card>
         </div>
 
-        {/* Order Summary */}
         <div>
           <Card className="sticky top-24">
             <CardHeader>
@@ -188,10 +217,38 @@ export default function CheckoutPage() {
                 ))}
               </ul>
 
-              <div className="mt-4 space-y-2 border-t pt-4">
+              <div className="mt-4 border-t pt-4">
+                <PromoCodeInput
+                  subtotal={subtotal}
+                  appliedCode={promo.code}
+                  discount={discount}
+                  discountType={promo.discountType}
+                  onApply={handleApplyPromo}
+                  onRemove={clearPromoCode}
+                  className="mb-4"
+                />
+              </div>
+
+              <div className="space-y-2 border-t pt-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-600">Subtotal</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount ({promo.code})</span>
+                    <span className="font-medium">-{formatCurrency(discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-zinc-600">Shipping</span>
+                  <span className="font-medium">
+                    {hasFreeShipping ? (
+                      <span className="text-green-600">FREE</span>
+                    ) : (
+                      'Pickup'
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-600">Tax (6.25%)</span>

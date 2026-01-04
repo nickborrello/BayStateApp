@@ -195,5 +195,74 @@ describe('Cart Store', () => {
 
       expect(result.current.items).toHaveLength(0);
     });
+
+    it('also clears promo code', () => {
+      const { result } = renderHook(() => useCartStore());
+
+      act(() => {
+        result.current.applyPromoCode('TEST10', 10, 'fixed_amount', 'promo-123');
+        result.current.clearCart();
+      });
+
+      expect(result.current.promo.code).toBeNull();
+      expect(result.current.promo.discount).toBe(0);
+    });
+  });
+
+  describe('promo codes', () => {
+    it('applies promo code correctly', () => {
+      const { result } = renderHook(() => useCartStore());
+
+      act(() => {
+        result.current.applyPromoCode('SUMMER20', 15, 'percentage', 'promo-456');
+      });
+
+      expect(result.current.promo.code).toBe('SUMMER20');
+      expect(result.current.promo.discount).toBe(15);
+      expect(result.current.promo.discountType).toBe('percentage');
+      expect(result.current.promo.promoCodeId).toBe('promo-456');
+    });
+
+    it('clears promo code', () => {
+      const { result } = renderHook(() => useCartStore());
+
+      act(() => {
+        result.current.applyPromoCode('TEST', 10, 'fixed_amount', 'promo-123');
+        result.current.clearPromoCode();
+      });
+
+      expect(result.current.promo.code).toBeNull();
+      expect(result.current.promo.discount).toBe(0);
+      expect(result.current.promo.discountType).toBeNull();
+    });
+
+    it('calculates discount correctly', () => {
+      const { result } = renderHook(() => useCartStore());
+
+      act(() => {
+        result.current.addItem({
+          id: '1',
+          name: 'Product',
+          slug: 'product',
+          price: 50,
+          imageUrl: null,
+        });
+        result.current.applyPromoCode('SAVE10', 10, 'fixed_amount', 'promo-789');
+      });
+
+      expect(result.current.getSubtotal()).toBe(50);
+      expect(result.current.getDiscount()).toBe(10);
+      expect(result.current.getTotal()).toBe(40);
+    });
+
+    it('detects free shipping promo', () => {
+      const { result } = renderHook(() => useCartStore());
+
+      act(() => {
+        result.current.applyPromoCode('FREESHIP', 0, 'free_shipping', 'promo-free');
+      });
+
+      expect(result.current.hasFreeShipping()).toBe(true);
+    });
   });
 });

@@ -12,3 +12,7 @@ export { StickyCart } from './sticky-cart';
 export { CartDrawer } from './cart-drawer';
 export { AddToCartButton } from './add-to-cart-button';
 export { AddServiceToCartButton } from './add-service-to-cart-button';
+export { FreeShippingBar } from './free-shipping-bar';
+export { PromoCodeInput } from './promo-code-input';
+export { NewsletterSignup } from './newsletter-signup';
+export { FirstOrderBanner } from './first-order-banner';

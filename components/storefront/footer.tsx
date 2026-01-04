@@ -1,15 +1,11 @@
 import Link from 'next/link';
+import { NewsletterSignup } from '@/components/storefront/newsletter-signup';
 
-/**
- * StorefrontFooter - Footer for the customer-facing storefront.
- * Contains store info, contact details, and useful links.
- */
 export function StorefrontFooter() {
   return (
     <footer className="border-t bg-zinc-50">
       <div className="container mx-auto px-4 py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Store Info */}
           <div>
             <h3 className="mb-4 text-lg font-semibold text-zinc-900">
               Bay State Pet & Garden
@@ -20,7 +16,6 @@ export function StorefrontFooter() {
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-500">
               Shop
@@ -53,7 +48,6 @@ export function StorefrontFooter() {
             </ul>
           </div>
 
-          {/* Services */}
           <div>
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-500">
               Services
@@ -78,7 +72,6 @@ export function StorefrontFooter() {
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-zinc-500">
               Contact
@@ -105,18 +98,23 @@ export function StorefrontFooter() {
           </div>
         </div>
 
-        {/* Copyright & Extra Links */}
-        <div className="mt-12 border-t pt-8 text-center text-sm text-zinc-500">
-          <div className="mb-4 flex flex-wrap justify-center gap-4">
-            <Link href="/shipping" className="hover:text-zinc-900">Shipping</Link>
-            <Link href="/returns" className="hover:text-zinc-900">Returns</Link>
-            <Link href="/privacy" className="hover:text-zinc-900">Privacy / Security</Link>
-            <Link href="/careers" className="hover:text-zinc-900">Career Opportunities</Link>
+        <div className="mt-12 border-t pt-8">
+          <div className="grid gap-8 lg:grid-cols-2">
+            <NewsletterSignup source="footer" />
+            
+            <div className="flex flex-col items-center justify-center lg:items-end">
+              <div className="mb-4 flex flex-wrap justify-center gap-4 lg:justify-end">
+                <Link href="/shipping" className="text-sm text-zinc-500 hover:text-zinc-900">Shipping</Link>
+                <Link href="/returns" className="text-sm text-zinc-500 hover:text-zinc-900">Returns</Link>
+                <Link href="/privacy" className="text-sm text-zinc-500 hover:text-zinc-900">Privacy / Security</Link>
+                <Link href="/careers" className="text-sm text-zinc-500 hover:text-zinc-900">Career Opportunities</Link>
+              </div>
+              <p className="text-sm text-zinc-500">
+                © {new Date().getFullYear()} Bay State Pet & Garden Supply. All
+                rights reserved.
+              </p>
+            </div>
           </div>
-          <p>
-            © {new Date().getFullYear()} Bay State Pet & Garden Supply. All
-            rights reserved.
-          </p>
         </div>
       </div>
     </footer>
