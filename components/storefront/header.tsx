@@ -27,13 +27,14 @@ export function StorefrontHeader({ user, userRole }: { user: User | null, userRo
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <div className="h-10 w-10 overflow-hidden rounded-md border border-zinc-200 relative">
+            <div className="h-10 w-10 relative">
               <Image
-                src="/icon.svg"
+                src="/logo.png"
                 alt="Bay State Pet & Garden Supply Logo"
                 fill
                 sizes="40px"
-                className="object-cover"
+                className="object-contain"
+                priority
               />
             </div>
             <div className="flex flex-col">

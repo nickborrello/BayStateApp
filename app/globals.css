@@ -54,32 +54,32 @@
   --card-foreground: #66161D;
   --popover: #ffffff;
   --popover-foreground: #66161D;
-  --primary: #FCD048; /* Harvest Gold */
-  --primary-foreground: #66161D; /* Bay State Burgundy */
-  --secondary: #f4f4f5;
-  --secondary-foreground: #348C41; /* Garden Green */
+  --primary: #348C41; /* Forest Green (Prominent) */
+  --primary-foreground: #ffffff;
+  --secondary: #66161D; /* Bay State Burgundy (Secondary) */
+  --secondary-foreground: #FCD048; /* Harvest Gold text on Burgundy */
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #348C41;
+  --accent: #FCD048; /* Harvest Gold (Special Cases) */
+  --accent-foreground: #66161D;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #e4e4e7;
   --input: #e4e4e7;
-  --ring: #348C41; /* Garden Green */
+  --ring: #348C41; /* Forest Green */
   --chart-1: #348C41;
   --chart-2: #66161D;
   --chart-3: #FCD048;
   --chart-4: #e76e50;
   --chart-5: #2a9d8f;
-  --sidebar: #66161D; /* Bay State Burgundy */
-  --sidebar-foreground: #FCD048; /* Harvest Gold */
-  --sidebar-primary: #FCD048;
-  --sidebar-primary-foreground: #66161D;
-  --sidebar-accent: #551218; /* Darker Burgundy for hover */
+  --sidebar: #348C41; /* Forest Green */
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #348C41;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a7034; /* Darker Green for hover */
   --sidebar-accent-foreground: #FCD048;
   --sidebar-border: #FCD048;
-  --sidebar-ring: #348C41;
+  --sidebar-ring: #FCD048;
 }
 
 .dark {
@@ -89,14 +89,14 @@
   --card-foreground: #ffffff;
   --popover: #09090b;
   --popover-foreground: #ffffff;
-  --primary: #FCD048;
-  --primary-foreground: #66161D;
-  --secondary: #27272a;
-  --secondary-foreground: #ffffff;
+  --primary: #348C41; /* Forest Green */
+  --primary-foreground: #ffffff;
+  --secondary: #66161D; /* Bay State Burgundy */
+  --secondary-foreground: #FCD048;
   --muted: #27272a;
   --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #ffffff;
+  --accent: #FCD048; /* Harvest Gold */
+  --accent-foreground: #66161D;
   --destructive: #760F1D;
   --destructive-foreground: #ffffff;
   --border: #27272a;
@@ -107,14 +107,14 @@
   --chart-3: #FCD048;
   --chart-4: #e76e50;
   --chart-5: #2a9d8f;
-  --sidebar: #66161D;
-  --sidebar-foreground: #FCD048;
-  --sidebar-primary: #FCD048;
-  --sidebar-primary-foreground: #66161D;
-  --sidebar-accent: #551218;
+  --sidebar: #348C41;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #348C41;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a7034;
   --sidebar-accent-foreground: #FCD048;
   --sidebar-border: #27272a;
-  --sidebar-ring: #348C41;
+  --sidebar-ring: #FCD048;
 }
 
 @layer base {
