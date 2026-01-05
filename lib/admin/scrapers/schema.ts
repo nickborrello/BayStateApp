@@ -119,6 +119,7 @@ export const verifyParamsSchema = z.object({
 // Base workflow step schema
 export const workflowStepSchema = z.object({
   action: z.string().min(1, 'Action is required'),
+  name: z.string().optional(),
   params: z.record(z.string(), z.unknown()).default({}),
 });
 
@@ -188,7 +189,7 @@ export const scraperConfigSchema = z.object({
 
 // Database record schemas
 export const scraperRecordSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   name: z.string(),
   display_name: z.string().nullable(),
   base_url: z.string(),

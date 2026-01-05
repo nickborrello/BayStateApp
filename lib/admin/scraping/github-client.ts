@@ -49,6 +49,12 @@ export interface TriggerWorkflowInputs {
     scrapers?: string;
     test_mode?: boolean;
     max_workers?: number;
+    /** 
+     * Execution mode:
+     * - 'full': Process all SKUs in single runner (legacy)
+     * - 'chunk_worker': Claim and process chunks until none remain
+     */
+    mode?: 'full' | 'chunk_worker';
 }
 
 export interface RunnerStatus {
@@ -193,6 +199,7 @@ class GitHubAppClient {
                 scrapers: inputs.scrapers || '',
                 test_mode: String(inputs.test_mode || false),
                 max_workers: String(inputs.max_workers || 3),
+                mode: inputs.mode || 'full',
             },
         });
     }
