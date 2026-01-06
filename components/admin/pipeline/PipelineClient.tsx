@@ -7,6 +7,8 @@ import { PipelineStatusTabs } from './PipelineStatusTabs';
 import { PipelineProductCard } from './PipelineProductCard';
 import { PipelineProductDetail } from './PipelineProductDetail';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
+import { BatchJobsPanel } from './BatchJobsPanel';
+import { ConsolidationProgressBanner } from './ConsolidationProgressBanner';
 import { Search, RefreshCw, Bot } from 'lucide-react';
 
 const statusLabels: Record<PipelineStatus, string> = {
@@ -37,12 +39,40 @@ export function PipelineClient({ initialProducts, initialCounts, initialStatus }
     const [runnersAvailable, setRunnersAvailable] = useState(false);
     const [scrapeJobId, setScrapeJobId] = useState<string | null>(null);
 
-    // Check runner availability on mount and when switching to staging
+    const [isConsolidating, setIsConsolidating] = useState(false);
+    const [consolidationBatchId, setConsolidationBatchId] = useState<string | null>(null);
+    const [consolidationProgress, setConsolidationProgress] = useState(0);
+    const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+
     useEffect(() => {
         if (activeStatus === 'staging') {
             checkRunnersAvailable().then(setRunnersAvailable);
         }
     }, [activeStatus]);
+
+    useEffect(() => {
+        if (!consolidationBatchId) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/admin/consolidation/${consolidationBatchId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setConsolidationProgress(data.progress || 0);
+                    
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        setIsConsolidating(false);
+                        setConsolidationBatchId(null);
+                        handleRefresh();
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling consolidation status:', error);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [consolidationBatchId]);
 
     const handleStatusChange = async (status: PipelineStatus) => {
         setActiveStatus(status);
@@ -140,6 +170,47 @@ export function PipelineClient({ initialProducts, initialCounts, initialStatus }
         setIsScraping(false);
     };
 
+    const handleConsolidate = async () => {
+        if (selectedSkus.size === 0) return;
+
+        setIsConsolidating(true);
+        setIsBannerDismissed(false);
+        setConsolidationProgress(0);
+
+        try {
+            const res = await fetch('/api/admin/consolidation/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ skus: Array.from(selectedSkus) }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setConsolidationBatchId(data.jobId);
+                setSelectedSkus(new Set());
+            } else {
+                console.error('Failed to start consolidation');
+                setIsConsolidating(false);
+            }
+        } catch (error) {
+            console.error('Error submitting consolidation:', error);
+            setIsConsolidating(false);
+        }
+    };
+
+    const handleApplyBatch = async (batchId: string) => {
+        try {
+            const res = await fetch(`/api/admin/consolidation/${batchId}/apply`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                handleRefresh();
+            }
+        } catch (error) {
+            console.error('Error applying batch:', error);
+        }
+    };
+
     const handleView = (sku: string) => {
         setViewingSku(sku);
     };
@@ -184,6 +255,21 @@ export function PipelineClient({ initialProducts, initialCounts, initialStatus }
                 activeStatus={activeStatus}
                 onStatusChange={handleStatusChange}
             />
+
+            <BatchJobsPanel 
+                onApplyBatch={handleApplyBatch}
+                activeBatchId={consolidationBatchId}
+            />
+
+            {consolidationBatchId && (
+                <ConsolidationProgressBanner
+                    batchId={consolidationBatchId}
+                    progress={consolidationProgress}
+                    isDismissed={isBannerDismissed}
+                    onDismiss={() => setIsBannerDismissed(true)}
+                    onViewDetails={() => setIsBannerDismissed(false)}
+                />
+            )}
 
             {/* Scraping Job Banner */}
             {scrapeJobId && (
@@ -243,6 +329,8 @@ export function PipelineClient({ initialProducts, initialCounts, initialStatus }
                 onScrape={handleScrape}
                 isScraping={isScraping}
                 runnersAvailable={runnersAvailable}
+                onConsolidate={handleConsolidate}
+                isConsolidating={isConsolidating}
                 onClearSelection={() => setSelectedSkus(new Set())}
             />
 

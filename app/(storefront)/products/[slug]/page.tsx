@@ -8,9 +8,17 @@ import { AddToCartButton } from '@/components/storefront/add-to-cart-button';
 import { ProductImageCarousel } from '@/components/storefront/product-image-carousel';
 import { ProductAdminEdit } from '@/components/storefront/product-admin-edit';
 import { ProductCard } from '@/components/storefront/product-card';
+import { ProductReviews } from '@/components/storefront/product-reviews';
+import { ReviewSubmissionForm } from '@/components/storefront/review-submission-form';
+import { ProductQA } from '@/components/storefront/product-qa';
+import { RecentlyViewedSection } from '@/components/storefront/recently-viewed-section';
+import { ProductViewTracker } from '@/components/storefront/product-view-tracker';
 import { createClient } from '@/lib/supabase/server';
 import { getUserRole } from '@/lib/auth/roles';
 import { getRelatedProductsByPetType } from '@/lib/recommendations';
+import { getApprovedReviews, getProductReviewStats, hasUserReviewedProduct } from '@/lib/storefront/reviews';
+import { getProductQuestions } from '@/lib/storefront/questions';
+import { getRecentlyViewedProducts } from '@/lib/storefront/recently-viewed';
 
 interface ProductDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -68,12 +76,21 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     notFound();
   }
 
-  // Check if user is admin or staff
-  const userRole = user ? await getUserRole(user.id) : null;
-  const canEditProducts = userRole === 'admin' || userRole === 'staff';
+  // Fetch additional data in parallel
+  const [userRole, relatedByPetType, reviews, reviewStats, questions, recentlyViewed, hasReviewed] = await Promise.all([
+    user ? getUserRole(user.id) : null,
+    getRelatedProductsByPetType(product.id, 4),
+    getApprovedReviews(product.id),
+    getProductReviewStats(product.id),
+    getProductQuestions(product.id),
+    getRecentlyViewedProducts(product.id, 6),
+    hasUserReviewedProduct(product.id),
+  ]);
 
-  // Fetch related products based on pet type
-  const relatedByPetType = await getRelatedProductsByPetType(product.id, 4);
+  const isLoggedIn = !!user;
+
+  // Check if user is admin or staff
+  const canEditProducts = userRole === 'admin' || userRole === 'staff';
 
   const formattedPrice = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -111,6 +128,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   return (
     <div className="w-full px-4 py-8">
+      <ProductViewTracker productId={product.id} />
       {/* Breadcrumb */}
       <nav className="mb-6">
         <Link
@@ -197,6 +215,42 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               <ProductCard key={relatedProduct.id} product={relatedProduct} />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Customer Reviews */}
+      <section className="mt-12 border-t pt-8">
+        <h2 className="mb-6 text-xl font-semibold text-zinc-900">
+          Customer Reviews
+        </h2>
+        <ProductReviews reviews={reviews} stats={reviewStats} />
+        <div className="mt-8">
+          <ReviewSubmissionForm
+            productId={product.id}
+            productSlug={product.slug}
+            isLoggedIn={isLoggedIn}
+            hasAlreadyReviewed={hasReviewed}
+          />
+        </div>
+      </section>
+
+      {/* Questions & Answers */}
+      <section className="mt-12 border-t pt-8">
+        <h2 className="mb-6 text-xl font-semibold text-zinc-900">
+          Questions & Answers
+        </h2>
+        <ProductQA
+          productId={product.id}
+          productSlug={product.slug}
+          questions={questions}
+          isLoggedIn={isLoggedIn}
+        />
+      </section>
+
+      {/* Recently Viewed */}
+      {recentlyViewed.length > 0 && (
+        <section className="mt-12 border-t pt-8">
+          <RecentlyViewedSection products={recentlyViewed} />
         </section>
       )}
     </div>

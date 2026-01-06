@@ -8,6 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 
+const DEFAULT_ANTI_DETECTION = {
+  enable_captcha_detection: false,
+  enable_rate_limiting: false,
+  enable_human_simulation: false,
+  enable_session_rotation: false,
+  enable_blocking_handling: false,
+  rate_limit_min_delay: 1.0,
+  rate_limit_max_delay: 3.0,
+  session_rotation_interval: 100,
+  max_retries_on_detection: 3,
+};
+
 export function GlobalSettings() {
   const { config, setGeneralInfo, updateConfig } = useScraperEditorStore();
 
@@ -108,7 +120,7 @@ export function GlobalSettings() {
             <Switch 
               checked={config.anti_detection?.enable_human_simulation || false}
               onCheckedChange={(checked) => updateConfig({ 
-                anti_detection: { ...config.anti_detection, enable_human_simulation: checked } 
+                anti_detection: { ...DEFAULT_ANTI_DETECTION, ...config.anti_detection, enable_human_simulation: checked } 
               })}
             />
           </div>
@@ -122,7 +134,7 @@ export function GlobalSettings() {
             <Switch 
               checked={config.anti_detection?.enable_session_rotation || false}
               onCheckedChange={(checked) => updateConfig({ 
-                anti_detection: { ...config.anti_detection, enable_session_rotation: checked } 
+                anti_detection: { ...DEFAULT_ANTI_DETECTION, ...config.anti_detection, enable_session_rotation: checked } 
               })}
             />
           </div>
@@ -135,7 +147,7 @@ export function GlobalSettings() {
             <Switch 
               checked={config.anti_detection?.enable_rate_limiting || false}
               onCheckedChange={(checked) => updateConfig({ 
-                anti_detection: { ...config.anti_detection, enable_rate_limiting: checked } 
+                anti_detection: { ...DEFAULT_ANTI_DETECTION, ...config.anti_detection, enable_rate_limiting: checked } 
               })}
             />
           </div>

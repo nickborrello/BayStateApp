@@ -21,6 +21,21 @@ interface ProductRow {
   search_keywords: string | null;
   category_id: string | null;
   created_at: string;
+  compare_at_price: number | null;
+  cost_price: number | null;
+  quantity: number | null;
+  low_stock_threshold: number | null;
+  is_taxable: boolean | null;
+  tax_code: string | null;
+  barcode: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  dimensions: Record<string, unknown> | null;
+  origin_country: string | null;
+  vendor: string | null;
+  published_at: string | null;
+  avg_rating: number | null;
+  review_count: number | null;
   brand: {
     id: string;
     name: string;
@@ -46,6 +61,21 @@ function transformProductRow(row: ProductRow): Product {
     search_keywords: row.search_keywords,
     category_id: row.category_id,
     created_at: row.created_at,
+    compare_at_price: row.compare_at_price ? Number(row.compare_at_price) : null,
+    cost_price: row.cost_price ? Number(row.cost_price) : null,
+    quantity: row.quantity ?? 0,
+    low_stock_threshold: row.low_stock_threshold ?? 5,
+    is_taxable: row.is_taxable ?? true,
+    tax_code: row.tax_code,
+    barcode: row.barcode,
+    meta_title: row.meta_title,
+    meta_description: row.meta_description,
+    dimensions: row.dimensions as Product['dimensions'],
+    origin_country: row.origin_country,
+    vendor: row.vendor,
+    published_at: row.published_at,
+    avg_rating: row.avg_rating ? Number(row.avg_rating) : null,
+    review_count: row.review_count ?? 0,
   };
 
   // Brand data is included via join

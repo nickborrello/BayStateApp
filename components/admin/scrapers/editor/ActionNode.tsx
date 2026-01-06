@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -168,7 +168,7 @@ function ActionParams({ step, index }: { step: { action: string; params?: Record
   }
 }
 
-function ActionNodeComponent({ data, selected }: NodeProps<ActionNodeData>) {
+function ActionNodeComponent({ data, selected }: NodeProps<Node<ActionNodeData>>) {
   const { updateWorkflowStep, removeWorkflowStep } = useScraperEditorStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);

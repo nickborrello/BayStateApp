@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { SelectorConfig } from '@/lib/admin/scrapers/types';
 import { Trash2, Plus } from 'lucide-react';
 
 export function SelectorsEditor() {
@@ -59,7 +60,7 @@ export function SelectorsEditor() {
                   <Label className="text-xs mb-1.5 block">Attribute</Label>
                   <Select 
                     value={sel.attribute} 
-                    onValueChange={(v) => updateSelector(idx, { attribute: v })}
+                    onValueChange={(v) => updateSelector(idx, { attribute: v as SelectorConfig['attribute'] })}
                   >
                     <SelectTrigger>
                       <SelectValue />

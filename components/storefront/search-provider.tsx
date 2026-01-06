@@ -5,9 +5,10 @@ import Fuse from 'fuse.js';
 import { CommandBar } from '@/components/storefront/command-bar';
 
 interface SearchContextType {
+  searchIndex: Fuse<unknown> | null;
+  isOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
-  isOpen: boolean;
 }
 
 const SearchContext = createContext<SearchContextType | null>(null);
@@ -80,7 +81,6 @@ export function SearchProvider({ children, initialData }: SearchProviderProps) {
     });
   }, [initialData]);
 
-  // Handle keyboard shortcut (Cmd+K or Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -97,7 +97,7 @@ export function SearchProvider({ children, initialData }: SearchProviderProps) {
   const closeSearch = useCallback(() => setIsOpen(false), []);
 
   return (
-    <SearchContext.Provider value={{ openSearch, closeSearch, isOpen }}>
+    <SearchContext.Provider value={{ searchIndex, isOpen, openSearch, closeSearch }}>
       {children}
       <CommandBar searchIndex={searchIndex} isOpen={isOpen} onClose={closeSearch} />
     </SearchContext.Provider>

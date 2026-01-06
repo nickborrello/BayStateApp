@@ -3,7 +3,6 @@ import {
   ScraperConfig, 
   WorkflowStep, 
   ActionType, 
-  actionTypes,
   SelectorConfig 
 } from './types';
 import { v4 as uuidv4 } from 'uuid';

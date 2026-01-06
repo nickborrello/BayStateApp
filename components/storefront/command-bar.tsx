@@ -4,9 +4,19 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, ArrowRight, Package, Wrench, Tag } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { type SearchResult } from '@/lib/search';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
+interface SearchResult {
+  type: 'product' | 'service' | 'brand';
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  price?: number | null;
+  imageUrl?: string | null;
+}
 
 interface CommandBarProps {
   searchIndex: Fuse<unknown> | null;
@@ -28,6 +38,7 @@ const typeLabels = {
 
 /**
  * CommandBar - Intelligent fuzzy search with keyboard navigation.
+ * Mobile only (md:hidden).
  */
 export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
   const [query, setQuery] = useState('');
@@ -59,11 +70,12 @@ export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
   // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+      // Small delay to ensure transitions don't mess up focus
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
-  // Ensure selectedIndex stays within bounds - clamped value computed during render
+  // Ensure selectedIndex stays within bounds
   const boundedSelectedIndex = Math.min(selectedIndex, Math.max(0, results.length - 1));
 
   const navigateToResult = useCallback((result: SearchResult) => {
@@ -108,7 +120,7 @@ export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh] md:hidden">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -116,14 +128,14 @@ export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
       />
 
       {/* Command Bar */}
-      <div className="relative w-full max-w-xl mx-4 rounded-xl bg-white shadow-2xl">
+      <div className="relative w-full max-w-xl mx-4 rounded-xl bg-white shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
         {/* Search Input */}
         <div className="flex items-center border-b px-4">
           <Search className="h-5 w-5 text-zinc-400" />
           <Input
             ref={inputRef}
             type="text"
-            placeholder="Search products, services, brands..."
+            placeholder="Search products, services..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -144,8 +156,10 @@ export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
               return (
                 <li key={`${result.type}-${result.id}`}>
                   <button
-                    className={`flex w-full items-center gap-4 rounded-lg px-4 py-3 text-left transition-colors ${isSelected ? 'bg-zinc-100' : 'hover:bg-zinc-50'
-                      }`}
+                    className={cn(
+                        "flex w-full items-center gap-4 rounded-lg px-4 py-3 text-left transition-colors",
+                        isSelected ? "bg-zinc-100" : "hover:bg-zinc-50"
+                    )}
                     onClick={() => navigateToResult(result)}
                     onMouseEnter={() => setSelectedIndex(index)}
                   >
@@ -157,7 +171,7 @@ export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
                         <span className="font-medium text-zinc-900 truncate">
                           {result.name}
                         </span>
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-zinc-400 border border-zinc-200 px-1 rounded bg-zinc-50 uppercase tracking-wider scale-90 origin-left">
                           {typeLabels[result.type]}
                         </span>
                       </div>
@@ -192,9 +206,6 @@ export function CommandBar({ searchIndex, isOpen, onClose }: CommandBarProps) {
 
         {/* Keyboard hints */}
         <div className="flex items-center justify-center gap-4 border-t px-4 py-2 text-xs text-zinc-400">
-          <span>
-            <kbd className="rounded bg-zinc-100 px-1.5 py-0.5">↑↓</kbd> Navigate
-          </span>
           <span>
             <kbd className="rounded bg-zinc-100 px-1.5 py-0.5">Enter</kbd> Select
           </span>

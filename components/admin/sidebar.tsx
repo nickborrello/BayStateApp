@@ -17,6 +17,7 @@ import {
   Percent,
   Network,
   FileCode2,
+  Star,
 } from 'lucide-react';
 
 interface NavItem {
@@ -54,6 +55,7 @@ const navSections: NavSection[] = [
       { href: '/admin/orders', label: 'Orders', icon: <ShoppingCart className="h-5 w-5" /> },
       { href: '/admin/customers', label: 'Customers', icon: <UserCircle className="h-5 w-5" /> },
       { href: '/admin/promotions', label: 'Promotions', icon: <Percent className="h-5 w-5" /> },
+      { href: '/admin/reviews', label: 'Reviews', icon: <Star className="h-5 w-5" /> },
     ],
   },
   {

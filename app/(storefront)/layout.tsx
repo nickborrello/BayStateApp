@@ -4,7 +4,7 @@ import { MobileNav } from '@/components/storefront/mobile-nav';
 import { CampaignBanner } from '@/components/storefront/campaign-banner';
 import { SearchProvider } from '@/components/storefront/search-provider';
 import { StickyCart } from '@/components/storefront/sticky-cart';
-import { getProducts, getActiveServices, getBrands } from '@/lib/data';
+import { getProducts, getActiveServices, getBrands, getNavCategories, getPetTypesNav } from '@/lib/data';
 import { getCampaignBanner } from '@/lib/settings';
 
 import { createClient } from '@/lib/supabase/server';
@@ -22,11 +22,13 @@ export default async function StorefrontLayout({
   const supabase = await createClient();
 
   // Fetch search data, campaign settings, and user session
-  const [{ data: { user } }, { products }, services, brands, campaignBanner] = await Promise.all([
+  const [{ data: { user } }, { products }, services, brands, categories, petTypes, campaignBanner] = await Promise.all([
     supabase.auth.getUser(),
     getProducts({ limit: 100 }),
     getActiveServices(),
     getBrands(),
+    getNavCategories(),
+    getPetTypesNav(),
     getCampaignBanner(),
   ]);
 
@@ -84,7 +86,13 @@ export default async function StorefrontLayout({
             cycleInterval={campaignBanner.cycleInterval}
           />
         )}
-        <StorefrontHeader user={user} userRole={userRole} />
+        <StorefrontHeader 
+          user={user} 
+          userRole={userRole} 
+          categories={categories}
+          petTypes={petTypes}
+          brands={brands}
+        />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <StorefrontFooter />
         <StickyCart />

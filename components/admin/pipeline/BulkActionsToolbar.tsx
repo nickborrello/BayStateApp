@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, Loader2 } from 'lucide-react';
+import { Bot, Loader2, Sparkles } from 'lucide-react';
 import type { PipelineStatus } from '@/lib/pipeline';
 
 interface BulkActionsToolbarProps {
@@ -10,6 +10,8 @@ interface BulkActionsToolbarProps {
     onScrape?: () => void;
     isScraping?: boolean;
     runnersAvailable?: boolean;
+    onConsolidate?: () => void;
+    isConsolidating?: boolean;
     onClearSelection: () => void;
 }
 
@@ -45,12 +47,20 @@ export function BulkActionsToolbar({
     onScrape,
     isScraping = false,
     runnersAvailable = false,
+    onConsolidate,
+    isConsolidating = false,
     onClearSelection,
 }: BulkActionsToolbarProps) {
     if (selectedCount === 0) return null;
 
     const actions = nextStatusMap[currentStatus];
     const showScrapeButton = currentStatus === 'staging' && onScrape;
+
+    const visibleActions = onConsolidate 
+        ? actions.filter(a => a.action !== 'consolidate')
+        : actions;
+
+    const showConsolidateButton = onConsolidate && (currentStatus === 'staging' || currentStatus === 'scraped');
 
     return (
         <div className="flex items-center gap-4 rounded-lg bg-gray-900 px-4 py-3 text-white">
@@ -61,11 +71,10 @@ export function BulkActionsToolbar({
             <div className="flex-1" />
 
             <div className="flex items-center gap-2">
-                {/* Scrape button - only visible in staging */}
                 {showScrapeButton && (
                     <button
                         onClick={onScrape}
-                        disabled={isScraping || !runnersAvailable}
+                        disabled={isScraping || !runnersAvailable || isConsolidating}
                         className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors ${runnersAvailable
                                 ? 'bg-purple-600 hover:bg-purple-700'
                                 : 'bg-gray-600 cursor-not-allowed'
@@ -81,12 +90,26 @@ export function BulkActionsToolbar({
                     </button>
                 )}
 
-                {/* Standard actions */}
-                {actions.map(({ action }) => (
+                {showConsolidateButton && (
+                    <button
+                        onClick={onConsolidate}
+                        disabled={isConsolidating || isScraping}
+                        className="flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+                    >
+                        {isConsolidating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Sparkles className="h-4 w-4" />
+                        )}
+                        {isConsolidating ? 'Consolidating...' : 'AI Consolidate'}
+                    </button>
+                )}
+
+                {visibleActions.map(({ action }) => (
                     <button
                         key={action}
                         onClick={() => onAction(action as 'approve' | 'publish' | 'reject' | 'consolidate')}
-                        disabled={isScraping}
+                        disabled={isScraping || isConsolidating}
                         className={`rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${action === 'reject'
                             ? 'bg-red-600 hover:bg-red-700'
                             : action === 'publish'
@@ -100,7 +123,7 @@ export function BulkActionsToolbar({
 
                 <button
                     onClick={onClearSelection}
-                    disabled={isScraping}
+                    disabled={isScraping || isConsolidating}
                     className="rounded px-3 py-1.5 text-sm font-medium text-gray-300 hover:text-white disabled:opacity-50"
                 >
                     Clear

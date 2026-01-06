@@ -39,7 +39,7 @@ function workflowToNodes(workflows: { action: string; name?: string; params?: Re
     type: 'actionNode',
     position: { x: CENTER_X, y: START_Y + index * VERTICAL_SPACING },
     data: {
-      step,
+      step: { ...step, params: step.params || {} },
       label: step.name || `Step ${index + 1}`,
       actionType: step.action,
       index,

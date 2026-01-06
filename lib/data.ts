@@ -41,6 +41,43 @@ export async function getBrands(): Promise<Brand[]> {
   return data || [];
 }
 
+/**
+ * Fetches top-level categories for navigation.
+ */
+export async function getNavCategories() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id, name, slug, parent_id, display_order, image_url, is_featured')
+    .is('parent_id', null)
+    .order('display_order');
+
+  if (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Fetches pet types for navigation.
+ */
+export async function getPetTypesNav() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('pet_types')
+    .select('id, name, icon, display_order')
+    .order('display_order');
+
+  if (error) {
+    console.error('Error fetching pet types:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
 // Re-export product functions from lib/products.ts for backward compatibility
 // This ensures existing imports continue to work
 export {
