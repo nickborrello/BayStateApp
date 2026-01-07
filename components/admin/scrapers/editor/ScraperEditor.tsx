@@ -4,7 +4,7 @@ import React from 'react';
 import { useScraperEditorStore } from '@/lib/admin/scrapers/store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Save, Play, Download, Upload } from 'lucide-react';
+import { Save, Play, Download } from 'lucide-react';
 import { GlobalSettings } from './GlobalSettings';
 import { WorkflowBuilder } from './WorkflowBuilder';
 import { YamlPreview } from './YamlPreview';
@@ -85,7 +85,7 @@ export function ScraperEditor() {
       <div className="flex-1 overflow-hidden">
         <Tabs
           value={activeTab}
-          onValueChange={(v) => setActiveTab(v as string)}
+          onValueChange={(v) => setActiveTab(v as 'selectors' | 'settings' | 'workflow' | 'yaml')}
           className="h-full flex flex-col"
         >
           <div className="px-4 border-b bg-muted/40">
