@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Key, Trash2, Loader2, Plus, RefreshCw, ShieldCheck, ShieldX } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -23,9 +23,10 @@ export function RunnerAccounts() {
     const [showModal, setShowModal] = useState(false);
     const [deleting, setDeleting] = useState<string | null>(null);
 
-    const fetchRunners = async (silent = false) => {
+    const fetchRunners = useCallback(async (silent = false) => {
         try {
-            if (!silent && runners.length === 0) setLoading(true);
+            // Always show loading on explicit non-silent fetches (initial load or refresh)
+            if (!silent) setLoading(true);
             const res = await fetch('/api/admin/runners/accounts');
             if (!res.ok) throw new Error('Failed to fetch runners');
             const data = await res.json();
@@ -36,7 +37,7 @@ export function RunnerAccounts() {
         } finally {
             if (!silent) setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchRunners();
