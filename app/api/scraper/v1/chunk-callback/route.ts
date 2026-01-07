@@ -33,12 +33,10 @@ interface ChunkCallbackRequest {
 export async function POST(request: NextRequest) {
     try {
         // Validate authentication
-        const rawBody = await request.text();
         const runner = await validateRunnerAuth({
             apiKey: request.headers.get('X-API-Key'),
             authorization: request.headers.get('Authorization'),
-            webhookSignature: request.headers.get('X-Webhook-Signature'),
-        }, rawBody);
+        });
 
         if (!runner) {
             console.error('[Chunk Callback] Authentication failed');
@@ -48,7 +46,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const body: ChunkCallbackRequest = JSON.parse(rawBody);
+        const body: ChunkCallbackRequest = await request.json();
         const { chunk_id, status, results, error_message } = body;
 
         if (!chunk_id || !status) {

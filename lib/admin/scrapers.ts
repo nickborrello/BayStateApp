@@ -69,6 +69,10 @@ export async function updateScraperStatus(name: string, disabled: boolean) {
   revalidatePath('/admin/scrapers');
 }
 
+/**
+ * Creates a test job for a scraper. Daemon runners will pick it up
+ * and process it automatically.
+ */
 export async function testScraper(name: string, sku: string) {
   const supabase = await createClient();
 
@@ -78,7 +82,26 @@ export async function testScraper(name: string, sku: string) {
     return { error: 'Scraper not found' };
   }
 
-  // 2. Create test run record
+  // 2. Create a scrape job in pending status
+  // Daemon runners will poll and claim this job
+  const { data: job, error: jobError } = await supabase
+    .from('scrape_jobs')
+    .insert({
+      skus: [sku],
+      scrapers: [scraper.name],
+      test_mode: true,
+      max_workers: 1,
+      status: 'pending',
+    })
+    .select('id')
+    .single();
+
+  if (jobError || !job) {
+    console.error('Failed to create test job:', jobError);
+    return { error: 'Failed to create test job' };
+  }
+
+  // 3. Create test run record for tracking
   const testRun = {
     scraper_id: scraper.id,
     test_type: 'manual',
@@ -96,92 +119,14 @@ export async function testScraper(name: string, sku: string) {
 
   if (insertError) {
     console.error('Failed to create test run:', insertError);
-    return { error: 'Failed to create test run' };
+    // Job was created, continue even if test run tracking fails
   }
 
-  // 3. Get GitHub token
-  const { data: settings } = await supabase
-    .from('app_settings')
-    .select('value')
-    .eq('key', 'github_token')
-    .single();
+  console.log(`[testScraper] Created test job ${job.id} for ${scraper.name} with SKU: ${sku}`);
 
-  const githubToken = settings?.value as string | undefined;
-
-  // 4. Get Repo
-  const { data: scraperRepo } = await supabase
-    .from('app_settings')
-    .select('value')
-    .eq('key', 'scraper_repo')
-    .single();
-
-  const repoFullName = (scraperRepo?.value as string) || 'Bay-State-Pet-and-Garden-Supply/BayStateScraper';
-
-  if (!githubToken) {
-    await supabase
-      .from('scraper_test_runs')
-      .update({
-        status: 'failed',
-        error_message: 'GitHub token not configured',
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', insertedRun.id);
-    return { error: 'GitHub token not configured' };
-  }
-
-  // 5. Dispatch Workflow
-  const workflowDispatchUrl = `https://api.github.com/repos/${repoFullName}/actions/workflows/scrape.yml/dispatches`;
-
-  try {
-    const dispatchResponse = await fetch(workflowDispatchUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'BayStateApp',
-      },
-      body: JSON.stringify({
-        ref: 'main',
-        inputs: {
-          job_id: insertedRun.id,
-          scraper_name: scraper.name,
-          skus: JSON.stringify([sku]),
-          test_mode: 'true',
-          callback_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/admin/scraper-network/callback`,
-        },
-      }),
-    });
-
-    if (!dispatchResponse.ok) {
-      const errorText = await dispatchResponse.text();
-      console.error('GitHub dispatch failed:', errorText);
-
-      await supabase
-        .from('scraper_test_runs')
-        .update({
-          status: 'failed',
-          error_message: `GitHub dispatch failed: ${dispatchResponse.status}`,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', insertedRun.id);
-
-      return { error: `Failed to trigger GitHub workflow: ${dispatchResponse.status}` };
-    }
-
-    // 6. Update status to running
-    await supabase
-      .from('scraper_test_runs')
-      .update({ status: 'running' })
-      .eq('id', insertedRun.id);
-
-    return {
-      success: true,
-      testRunId: insertedRun.id
-    };
-
-  } catch (err) {
-    console.error('Error dispatching workflow:', err);
-    return { error: 'Internal server error during dispatch' };
-  }
+  return {
+    success: true,
+    jobId: job.id,
+    testRunId: insertedRun?.id,
+  };
 }

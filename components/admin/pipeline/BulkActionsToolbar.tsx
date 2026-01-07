@@ -16,9 +16,7 @@ interface BulkActionsToolbarProps {
 }
 
 const nextStatusMap: Record<PipelineStatus, { action: string; nextStatus: PipelineStatus }[]> = {
-    staging: [
-        { action: 'consolidate', nextStatus: 'consolidated' },
-    ],
+    staging: [],
     scraped: [
         { action: 'consolidate', nextStatus: 'consolidated' },
     ],
@@ -60,7 +58,7 @@ export function BulkActionsToolbar({
         ? actions.filter(a => a.action !== 'consolidate')
         : actions;
 
-    const showConsolidateButton = onConsolidate && (currentStatus === 'staging' || currentStatus === 'scraped');
+    const showConsolidateButton = onConsolidate && currentStatus === 'scraped';
 
     return (
         <div className="flex items-center gap-4 rounded-lg bg-gray-900 px-4 py-3 text-white">

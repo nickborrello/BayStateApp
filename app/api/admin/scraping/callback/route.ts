@@ -53,15 +53,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate authentication using unified auth function
-        const runner = await validateRunnerAuth(
-            {
-                apiKey: request.headers.get('X-API-Key'),
-                authorization: request.headers.get('Authorization'),
-                webhookSignature: request.headers.get('X-Webhook-Signature'),
-            },
-            bodyText,
-            payload.runner_name
-        );
+        const runner = await validateRunnerAuth({
+            apiKey: request.headers.get('X-API-Key'),
+            authorization: request.headers.get('Authorization'),
+        });
 
         if (!runner) {
             console.error('[Callback] Authentication failed - no valid credentials');

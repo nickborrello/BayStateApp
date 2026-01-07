@@ -1,7 +1,6 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { getGitHubClient } from '@/lib/admin/scraping/github-client';
 
 /**
  * Options for scraping jobs with chunking support.
@@ -23,7 +22,6 @@ export interface ScrapeResult {
     success: boolean;
     jobId?: string;
     chunksCreated?: number;
-    runnersDispatched?: number;
     error?: string;
 }
 
@@ -36,14 +34,16 @@ const DEFAULT_CHUNK_SIZE = 50;
 /**
  * Triggers a scraping job for selected products in the pipeline.
  * 
+ * This function creates a job record in the database. Daemon runners
+ * will poll for pending jobs and process them automatically.
+ * 
  * For large SKU lists, this function:
  * 1. Creates a parent job record
  * 2. Splits SKUs into chunks (default 50 per chunk)
  * 3. Creates chunk records in scrape_job_chunks table
- * 4. Dispatches multiple GitHub workflow runs (one per runner)
  * 
- * Each runner operates in "chunk_worker" mode:
- * - Claims pending chunks atomically
+ * Runners operate in "chunk_worker" mode:
+ * - Claims pending chunks atomically via RPC
  * - Processes each chunk
  * - Reports results back via callback
  * - Repeats until no chunks remain
@@ -57,14 +57,14 @@ export async function scrapeProducts(
     }
 
     const chunkSize = options?.chunkSize ?? DEFAULT_CHUNK_SIZE;
-    const maxRunners = options?.maxRunners ?? 3;
     const maxWorkers = options?.maxWorkers ?? 3;
     const testMode = options?.testMode ?? false;
     const scrapers = options?.scrapers ?? [];
 
     const supabase = await createClient();
 
-    // Create parent job record
+    // Create parent job record with status 'pending'
+    // Daemon runners will poll and claim this job
     const { data: job, error: insertError } = await supabase
         .from('scrape_jobs')
         .insert({
@@ -82,43 +82,22 @@ export async function scrapeProducts(
         return { success: false, error: 'Failed to create scraping job' };
     }
 
-    // Determine if we should use chunking
-    // For small jobs (< chunk size), use legacy single-runner mode
+    // For small jobs (< chunk size), no chunking needed
+    // Runners will process the job directly
     const useChunking = skus.length > chunkSize;
 
     if (!useChunking) {
-        // Legacy mode: single runner processes everything
-        console.log(`[Pipeline Scraping] Small job (${skus.length} SKUs), using single runner mode`);
+        console.log(`[Pipeline Scraping] Created job ${job.id} with ${skus.length} SKUs (pending for daemon pickup)`);
         
-        try {
-            const githubClient = getGitHubClient();
-            await githubClient.triggerWorkflow({
-                job_id: job.id,
-                skus: skus.join(','),
-                scrapers: scrapers.join(','),
-                test_mode: testMode,
-                max_workers: maxWorkers,
-            });
-
-            return { 
-                success: true, 
-                jobId: job.id,
-                chunksCreated: 0,
-                runnersDispatched: 1,
-            };
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to trigger workflow';
-            await supabase
-                .from('scrape_jobs')
-                .update({ status: 'failed', error_message: errorMessage })
-                .eq('id', job.id);
-
-            return { success: false, error: errorMessage };
-        }
+        return { 
+            success: true, 
+            jobId: job.id,
+            chunksCreated: 0,
+        };
     }
 
-    // Chunking mode: split SKUs and dispatch multiple runners
-    console.log(`[Pipeline Scraping] Large job (${skus.length} SKUs), using chunking mode`);
+    // Chunking mode: split SKUs for parallel processing by multiple runners
+    console.log(`[Pipeline Scraping] Large job (${skus.length} SKUs), creating chunks`);
 
     // Split SKUs into chunks
     const chunks: { job_id: string; chunk_index: number; skus: string[]; scrapers: string[] }[] = [];
@@ -145,77 +124,13 @@ export async function scrapeProducts(
         return { success: false, error: 'Failed to create job chunks' };
     }
 
-    console.log(`[Pipeline Scraping] Created ${chunks.length} chunks for job ${job.id}`);
+    console.log(`[Pipeline Scraping] Created job ${job.id} with ${chunks.length} chunks (pending for daemon pickup)`);
 
-    // Dispatch runners (up to maxRunners or number of chunks, whichever is smaller)
-    const runnersToDispatch = Math.min(maxRunners, chunks.length);
-    let runnersDispatched = 0;
-
-    try {
-        const githubClient = getGitHubClient();
-
-        // Dispatch multiple workflow runs
-        const dispatchPromises = [];
-        for (let i = 0; i < runnersToDispatch; i++) {
-            dispatchPromises.push(
-                githubClient.triggerWorkflow({
-                    job_id: job.id,
-                    mode: 'chunk_worker',
-                    max_workers: maxWorkers,
-                    test_mode: testMode,
-                })
-            );
-        }
-
-        // Wait for all dispatches with error tolerance
-        const results = await Promise.allSettled(dispatchPromises);
-        runnersDispatched = results.filter(r => r.status === 'fulfilled').length;
-
-        if (runnersDispatched === 0) {
-            throw new Error('Failed to dispatch any runners');
-        }
-
-        console.log(`[Pipeline Scraping] Dispatched ${runnersDispatched}/${runnersToDispatch} runners for job ${job.id}`);
-
-        // Update job status to running
-        await supabase
-            .from('scrape_jobs')
-            .update({ status: 'running' })
-            .eq('id', job.id);
-
-        return {
-            success: true,
-            jobId: job.id,
-            chunksCreated: chunks.length,
-            runnersDispatched,
-        };
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to trigger workflows';
-        console.error('[Pipeline Scraping] Dispatch error:', errorMessage);
-        
-        // Don't fail completely if some runners were dispatched
-        if (runnersDispatched > 0) {
-            await supabase
-                .from('scrape_jobs')
-                .update({ status: 'running' })
-                .eq('id', job.id);
-
-            return {
-                success: true,
-                jobId: job.id,
-                chunksCreated: chunks.length,
-                runnersDispatched,
-                error: `Partial dispatch: ${runnersDispatched}/${runnersToDispatch} runners`,
-            };
-        }
-
-        await supabase
-            .from('scrape_jobs')
-            .update({ status: 'failed', error_message: errorMessage })
-            .eq('id', job.id);
-
-        return { success: false, error: errorMessage };
-    }
+    return {
+        success: true,
+        jobId: job.id,
+        chunksCreated: chunks.length,
+    };
 }
 
 /**
@@ -274,28 +189,33 @@ export async function getScrapeJobStatus(jobId: string): Promise<{
 }
 
 /**
- * Check if there are any runners available for scraping.
+ * Checks if any daemon runners are available to process jobs.
+ * Looks for runners that have checked in within the last 5 minutes.
  */
 export async function checkRunnersAvailable(): Promise<boolean> {
-    try {
-        const githubClient = getGitHubClient();
-        const status = await githubClient.getRunnerStatus();
-        return status?.available ?? false;
-    } catch {
-        return false;
-    }
+    const count = await getAvailableRunnerCount();
+    return count > 0;
 }
 
 /**
- * Get count of available online runners.
+ * Gets the count of available daemon runners.
+ * Only counts runners seen within the last 5 minutes with active status.
  */
 export async function getAvailableRunnerCount(): Promise<number> {
-    try {
-        const githubClient = getGitHubClient();
-        const status = await githubClient.getRunnerStatus();
-        // Count online runners that are not busy
-        return status?.runners?.filter(r => r.status === 'online' && !r.busy).length ?? 0;
-    } catch {
+    const supabase = await createClient();
+    
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    const { count, error } = await supabase
+        .from('scraper_runners')
+        .select('*', { count: 'exact', head: true })
+        .gt('last_seen_at', fiveMinutesAgo)
+        .in('status', ['online', 'polling', 'idle', 'running']);
+        
+    if (error) {
+        console.error('[Pipeline Scraping] Failed to check runners:', error);
         return 0;
     }
+    
+    return count || 0;
 }

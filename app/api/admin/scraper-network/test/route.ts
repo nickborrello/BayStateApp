@@ -9,6 +9,12 @@ interface TestRequest {
   test_mode?: boolean;
 }
 
+/**
+ * POST /api/admin/scraper-network/test
+ * 
+ * Creates a test scrape job in the database. Daemon runners will
+ * poll for pending jobs and process them automatically.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -23,6 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get scraper details
     const { data: scraper, error: scraperError } = await supabase
       .from('scrapers')
       .select('*')
@@ -36,6 +43,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create a scrape job - daemon runners will pick it up
+    const { data: job, error: jobError } = await supabase
+      .from('scrape_jobs')
+      .insert({
+        skus: skus,
+        scrapers: [scraper.name],
+        test_mode: test_mode,
+        max_workers: 1,
+        status: 'pending',
+      })
+      .select('id')
+      .single();
+
+    if (jobError || !job) {
+      console.error('[Test API] Failed to create job:', jobError);
+      return NextResponse.json(
+        { error: 'Failed to create test job' },
+        { status: 500 }
+      );
+    }
+
+    // Create test run record for tracking
     const testRun = {
       scraper_id,
       test_type: 'manual' as const,
@@ -53,96 +82,16 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('[Test API] Failed to create test run:', insertError);
-      return NextResponse.json(
-        { error: 'Failed to create test run' },
-        { status: 500 }
-      );
+      // Job was created, so continue even if test run tracking fails
     }
 
-    const { data: settings } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'github_token')
-      .single();
-
-    const githubToken = settings?.value as string | undefined;
-
-    const { data: scraperRepo } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'scraper_repo')
-      .single();
-
-    const repoFullName = (scraperRepo?.value as string) || 'Bay-State-Pet-and-Garden-Supply/BayStateScraper';
-
-    if (!githubToken) {
-      await supabase
-        .from('scraper_test_runs')
-        .update({
-          status: 'failed',
-          error_message: 'GitHub token not configured. Add it in Settings.',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', insertedRun.id);
-
-      return NextResponse.json({
-        status: 'error',
-        error: 'GitHub token not configured. Cannot trigger workflow.',
-        test_run_id: insertedRun.id,
-      });
-    }
-
-    const workflowDispatchUrl = `https://api.github.com/repos/${repoFullName}/actions/workflows/scrape.yml/dispatches`;
-
-    const dispatchResponse = await fetch(workflowDispatchUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'BayStateApp',
-      },
-      body: JSON.stringify({
-        ref: 'main',
-        inputs: {
-          job_id: insertedRun.id,
-          scraper_name: scraper.name,
-          skus: JSON.stringify(skus),
-          test_mode: String(test_mode),
-          callback_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/admin/scraper-network/callback`,
-        },
-      }),
-    });
-
-    if (!dispatchResponse.ok) {
-      const errorText = await dispatchResponse.text();
-      console.error('[Test API] GitHub dispatch failed:', errorText);
-      
-      await supabase
-        .from('scraper_test_runs')
-        .update({
-          status: 'failed',
-          error_message: `GitHub dispatch failed: ${dispatchResponse.status}`,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', insertedRun.id);
-
-      return NextResponse.json({
-        status: 'error',
-        error: `Failed to trigger GitHub workflow: ${dispatchResponse.status}`,
-        test_run_id: insertedRun.id,
-      });
-    }
-
-    await supabase
-      .from('scraper_test_runs')
-      .update({ status: 'running' })
-      .eq('id', insertedRun.id);
+    console.log(`[Test API] Created test job ${job.id} for scraper ${scraper.name} with ${skus.length} SKUs`);
 
     return NextResponse.json({
-      status: 'dispatched',
-      message: 'Test triggered successfully. Results will be available when the runner completes.',
-      test_run_id: insertedRun.id,
+      status: 'pending',
+      message: 'Test job created. A daemon runner will pick it up and process it.',
+      job_id: job.id,
+      test_run_id: insertedRun?.id,
       scraper_name: scraper.name,
       skus_count: skus.length,
     });
@@ -156,15 +105,48 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * GET /api/admin/scraper-network/test?id=xxx
+ * 
+ * Gets the status of a test run.
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const testRunId = searchParams.get('id');
+    const jobId = searchParams.get('job_id');
+
+    // Support both test_run_id and job_id lookups
+    if (jobId) {
+      const { data: job, error } = await supabase
+        .from('scrape_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single();
+
+      if (error || !job) {
+        return NextResponse.json(
+          { error: 'Job not found' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        job_id: job.id,
+        status: job.status,
+        skus: job.skus,
+        scrapers: job.scrapers,
+        test_mode: job.test_mode,
+        created_at: job.created_at,
+        completed_at: job.completed_at,
+        error_message: job.error_message,
+      });
+    }
 
     if (!testRunId) {
       return NextResponse.json(
-        { error: 'Test run ID is required' },
+        { error: 'Test run ID or job ID is required' },
         { status: 400 }
       );
     }

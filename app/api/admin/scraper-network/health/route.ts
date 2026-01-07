@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getGitHubClient } from '@/lib/admin/scraping/github-client';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,80 +9,100 @@ interface ConfigCheck {
     message: string;
 }
 
+/**
+ * GET /api/admin/scraper-network/health
+ * 
+ * Returns health status of the scraper network infrastructure.
+ * Checks for available daemon runners and valid API keys.
+ */
 export async function GET() {
     const checks: ConfigCheck[] = [];
+    const supabase = await createClient();
 
-    const hasAppId = !!process.env.GITHUB_APP_ID;
-    const hasPrivateKey = !!process.env.GITHUB_APP_PRIVATE_KEY;
-    const hasInstallationId = !!process.env.GITHUB_APP_INSTALLATION_ID;
-    const hasOwner = !!process.env.GITHUB_OWNER;
-    const hasRepo = !!process.env.GITHUB_REPO;
-
-    if (hasAppId && hasPrivateKey && hasInstallationId) {
-        checks.push({
-            name: 'GitHub App',
-            status: 'ok',
-            message: 'App ID, Private Key, and Installation ID configured',
-        });
-    } else {
-        const missing = [];
-        if (!hasAppId) missing.push('GITHUB_APP_ID');
-        if (!hasPrivateKey) missing.push('GITHUB_APP_PRIVATE_KEY');
-        if (!hasInstallationId) missing.push('GITHUB_APP_INSTALLATION_ID');
-        checks.push({
-            name: 'GitHub App',
-            status: 'error',
-            message: `Missing: ${missing.join(', ')}`,
-        });
-    }
-
-    if (hasOwner && hasRepo) {
-        checks.push({
-            name: 'Repository',
-            status: 'ok',
-            message: `${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO}`,
-        });
-    } else {
-        checks.push({
-            name: 'Repository',
-            status: 'error',
-            message: 'Missing GITHUB_OWNER or GITHUB_REPO',
-        });
-    }
-
+    // Check 1: API Key Authentication
     checks.push({
         name: 'Runner Auth',
         status: 'ok',
         message: 'API Key authentication (X-API-Key header)',
     });
 
-    const hasWebhookSecret = !!process.env.SCRAPER_WEBHOOK_SECRET;
-    checks.push({
-        name: 'Webhook Secret',
-        status: hasWebhookSecret ? 'ok' : 'warning',
-        message: hasWebhookSecret 
-            ? 'HMAC fallback configured' 
-            : 'SCRAPER_WEBHOOK_SECRET not set (HMAC fallback disabled)',
-    });
+    // Check 2: Database connectivity (implicit via runner query)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    const { data: activeRunners, error: runnerError } = await supabase
+        .from('scraper_runners')
+        .select('name, status, last_seen_at')
+        .gt('last_seen_at', fiveMinutesAgo)
+        .in('status', ['online', 'polling', 'idle', 'running']);
 
-    try {
-        const client = getGitHubClient();
-        const status = await client.getRunnerStatus();
+    if (runnerError) {
         checks.push({
-            name: 'GitHub API',
-            status: 'ok',
-            message: `Connected - ${status.totalCount} runner(s) registered`,
+            name: 'Database',
+            status: 'error',
+            message: `Failed to query runners: ${runnerError.message}`,
         });
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Connection failed';
-        const isPermissionError = message.includes("Missing 'Administration' permission");
-
+    } else {
         checks.push({
-            name: 'GitHub API',
-            status: isPermissionError ? 'warning' : 'error',
-            message: message,
+            name: 'Database',
+            status: 'ok',
+            message: 'Connected to Supabase',
         });
     }
+
+    // Check 3: Active daemon runners
+    const runnerCount = activeRunners?.length || 0;
+    if (runnerCount > 0) {
+        const runnerNames = activeRunners?.map(r => r.name).join(', ') || '';
+        checks.push({
+            name: 'Daemon Runners',
+            status: 'ok',
+            message: `${runnerCount} runner(s) active: ${runnerNames}`,
+        });
+    } else {
+        checks.push({
+            name: 'Daemon Runners',
+            status: 'warning',
+            message: 'No active runners. Jobs will queue until a runner connects.',
+        });
+    }
+
+    // Check 4: Valid API keys exist
+    const { count: keyCount, error: keyError } = await supabase
+        .from('runner_api_keys')
+        .select('*', { count: 'exact', head: true })
+        .is('revoked_at', null);
+
+    if (keyError) {
+        checks.push({
+            name: 'API Keys',
+            status: 'error',
+            message: `Failed to query API keys: ${keyError.message}`,
+        });
+    } else if ((keyCount || 0) > 0) {
+        checks.push({
+            name: 'API Keys',
+            status: 'ok',
+            message: `${keyCount} active API key(s) configured`,
+        });
+    } else {
+        checks.push({
+            name: 'API Keys',
+            status: 'warning',
+            message: 'No API keys configured. Create one to enable runner authentication.',
+        });
+    }
+
+    // Check 5: Pending jobs count
+    const { count: pendingJobs } = await supabase
+        .from('scrape_jobs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+    checks.push({
+        name: 'Job Queue',
+        status: (pendingJobs || 0) > 10 ? 'warning' : 'ok',
+        message: `${pendingJobs || 0} pending job(s)`,
+    });
 
     return NextResponse.json({ checks });
 }
