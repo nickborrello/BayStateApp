@@ -38,9 +38,10 @@ interface EnrichmentWorkspaceProps {
   skus?: string[];
   onClose: () => void;
   onSave?: () => void;
+  onRunBatch?: (jobId: string) => void;
 }
 
-export function EnrichmentWorkspace({ sku, skus, onClose, onSave }: EnrichmentWorkspaceProps) {
+export function EnrichmentWorkspace({ sku, skus, onClose, onSave, onRunBatch }: EnrichmentWorkspaceProps) {
   // Determine if we're in batch mode
   const isBatchMode = skus && skus.length > 0;
   const effectiveSku = sku || (skus?.[0] || '');
@@ -175,19 +176,21 @@ export function EnrichmentWorkspace({ sku, skus, onClose, onSave }: EnrichmentWo
 
     setIsRunningEnhancement(true);
     try {
-      // Get selected scraper IDs
-      const selectedScrapers = sources
-        .filter((s) => s.type === 'scraper' && enabledSourceIds.includes(s.id))
+      // Get selected source IDs (scrapers and B2B)
+      const selectedSources = sources
+        .filter((s) => enabledSourceIds.includes(s.id))
         .map((s) => s.id);
 
       if (isBatchMode && skus) {
         // Batch mode: use scrapeProducts for all selected SKUs
         const result = await scrapeProducts(skus, {
-          scrapers: selectedScrapers,
+          scrapers: selectedSources,
         });
 
         if (result.success && result.jobId) {
           setEnhancementJobId(result.jobId);
+          // Trigger run batch callback with job ID
+          onRunBatch?.(result.jobId);
           // Close and trigger save callback
           onSave?.();
           onClose();

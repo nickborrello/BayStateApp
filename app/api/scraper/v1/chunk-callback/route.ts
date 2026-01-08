@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Update runner status to online (not busy)
-        const runnerName = body.runner_name || runner.runnerName;
+        const runnerName = runner.runnerName;
         await supabase
             .from('scraper_runners')
             .update({

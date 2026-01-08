@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
         }
 
         const body: HeartbeatRequest = await request.json();
-        const runnerName = body.runner_name || runner.runnerName;
+        // Always use the authenticated runner name, ignoring what the runner claims in the body
+        const runnerName = runner.runnerName;
         const supabase = getSupabaseAdmin();
 
         const updatePayload: Record<string, unknown> = {

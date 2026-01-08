@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const runnerName = body.runner_name || runner.runnerName;
+        const runnerName = runner.runnerName;
         const supabase = getSupabaseAdmin();
 
         await supabase

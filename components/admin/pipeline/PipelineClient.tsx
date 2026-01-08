@@ -435,6 +435,7 @@ export function PipelineClient({ initialProducts, initialCounts, initialStatus }
                 <EnrichmentWorkspace
                     skus={Array.from(selectedSkus)}
                     onClose={() => setShowBatchEnhanceWorkspace(false)}
+                    onRunBatch={(jobId) => setScrapeJobId(jobId)}
                     onSave={() => {
                         setSelectedSkus(new Set());
                         handleRefresh();
