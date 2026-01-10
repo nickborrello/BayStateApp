@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, CheckCircle2, XCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Loader2, RefreshCw, Terminal } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { LogViewer } from '@/components/admin/scraping/log-viewer';
+import { Button } from '@/components/ui/button';
 
 interface ScrapeJob {
     id: string;
@@ -15,6 +24,7 @@ interface ScrapeJob {
 export function JobHistory() {
     const [jobs, setJobs] = useState<ScrapeJob[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedJob, setSelectedJob] = useState<ScrapeJob | null>(null);
 
     const fetchJobs = async () => {
         setLoading(true);
@@ -99,11 +109,16 @@ export function JobHistory() {
                                 <th className="px-4 py-2 font-medium">SKUs</th>
                                 <th className="px-4 py-2 font-medium">Started</th>
                                 <th className="px-4 py-2 font-medium">Duration</th>
+                                <th className="px-4 py-2 font-medium text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {jobs.map((job) => (
-                                <tr key={job.id} className="hover:bg-gray-50">
+                                <tr 
+                                    key={job.id} 
+                                    className="hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => setSelectedJob(job)}
+                                >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             {getStatusIcon(job.status)}
@@ -124,12 +139,31 @@ export function JobHistory() {
                                     <td className="px-4 py-3 text-gray-500">
                                         {formatDuration(job.created_at, job.completed_at)}
                                     </td>
+                                    <td className="px-4 py-3 text-right">
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                            <Terminal className="h-4 w-4 text-gray-500" />
+                                            <span className="sr-only">View Logs</span>
+                                        </Button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             )}
+
+            <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+                <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0">
+                    <DialogHeader className="p-4 border-b">
+                        <DialogTitle>Job Execution Logs</DialogTitle>
+                        <DialogDescription className="font-mono text-xs flex gap-4 mt-1">
+                            <span>Job ID: {selectedJob?.id}</span>
+                            <span className="capitalize">Status: {selectedJob?.status}</span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedJob && <LogViewer jobId={selectedJob.id} className="flex-1 rounded-none border-0" />}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
